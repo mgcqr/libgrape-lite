@@ -36,6 +36,8 @@ limitations under the License.
 #include "grape/utils/message_buffer_pool.h"
 #include "grape/worker/comm_spec.h"
 
+#include <iostream>
+
 namespace grape {
 
 /**
@@ -98,7 +100,7 @@ class Worker {
     messages_.Start();
 
     messages_.StartARound();
-
+    std::cout << "============ PEval ================\n";
     runPEval();
     processMutation();
 
@@ -112,6 +114,7 @@ class Worker {
     int step = 1;
 
     while (!messages_.ToTerminate()) {
+      std::cout << "=========================== IncEval round "<< round << " ==================================\n";
       t = GetCurrentTime();
       round++;
       messages_.StartARound();
@@ -195,7 +198,12 @@ class Worker {
     auto& graph = context_->fragment();
     app_->IncEval(graph, *context_, messages_);
   }
-
+/**
+ * wuyufei:
+ * two processMutation() decided by if it's dynamic
+ * @tparam T
+ * @return
+*/
   template <typename T = context_t>
   typename std::enable_if<
       std::is_base_of<MutationContext<fragment_t>, T>::value>::type

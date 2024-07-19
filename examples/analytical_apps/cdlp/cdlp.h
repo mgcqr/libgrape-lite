@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "cdlp/cdlp_context.h"
 #include "cdlp/cdlp_utils.h"
+#include <iostream>//wuyufei
 
 namespace grape {
 
@@ -42,8 +43,26 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
   using label_t = typename context_t::label_t;
   using vid_t = typename context_t::vid_t;
 
+  /**
+   * wuyufei
+   *
+   *
+   * @param frag
+   * @param ctx
+   * @param messages
+   */
+  void printLabel(const fragment_t& frag, context_t& ctx,
+                      message_manager_t& messages){
+    auto inner_vertices = frag.InnerVertices();
+    std::cout << "current label\n";
+    for(auto v : inner_vertices ){
+      std::cout << "v" << v.GetValue() + 1 << " : " << ctx.labels[v] << std::endl;
+    }
+  }
+
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
                       message_manager_t& messages) {
+    std::cout << "PropagateLabel" << std::endl;
 #ifdef PROFILING
     ctx.preprocess_time -= GetCurrentTime();
 #endif
@@ -60,12 +79,17 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
     // touch neighbor and send messages in parallel
     ForEach(inner_vertices,
             [&frag, &ctx, &new_ilabels, &messages](int tid, vertex_t v) {
+
+//              std::cout<< "tid : " << tid << " vertex : " << v.GetValue()  << std::endl;
+
               auto es = frag.GetOutgoingAdjList(v);
+//              auto es = frag.GetIncomingAdjList(v);//edit wuyufei
               if (es.Empty()) {
                 ctx.changed[v] = false;
               } else {
-                label_t new_label = update_label_fast<label_t>(es, ctx.labels);
+                label_t new_label = update_label_fast_filter<label_t>(es, ctx.labels, ctx.labels[v]);//wuyufei
                 if (ctx.labels[v] != new_label) {
+                  std::cout << "Change v" << v.GetValue() + 1 << " " << ctx.labels[v] << " -> " << new_label << std::endl;
                   new_ilabels[v] = new_label;
                   ctx.changed[v] = true;
                   messages.SendMsgThroughOEdges<fragment_t, label_t>(
@@ -127,7 +151,7 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
       ctx.labels[v] = frag.GetOuterVertexId(v);
     });
 #endif
-
+    printLabel(frag, ctx, messages);//wuyufei
     PropagateLabel(frag, ctx, messages);
   }
 
@@ -156,7 +180,7 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
 #ifdef PROFILING
     ctx.preprocess_time += GetCurrentTime();
 #endif
-
+    printLabel(frag, ctx, messages);//wuyufei
     PropagateLabel(frag, ctx, messages);
   }
 };
