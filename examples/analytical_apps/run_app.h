@@ -43,6 +43,7 @@ limitations under the License.
 #include "bfs/bfs_auto.h"
 #include "cdlp/cdlp.h"
 #include "cdlp/cdlp_auto.h"
+#include "cdlp/cdlp_selective.h"//添加新算法
 #include "flags.h"
 #include "lcc/lcc.h"
 #include "lcc/lcc_auto.h"

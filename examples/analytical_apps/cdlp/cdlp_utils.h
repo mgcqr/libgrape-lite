@@ -94,15 +94,20 @@ inline LABEL_T update_label_fast_filter(const ADJ_LIST_T& edges,
 
   LABEL_T curr_label = local_labels[0];
   int curr_count = 1;
-  LABEL_T best_label = LABEL_T{};
+  static thread_local std::vector<LABEL_T> best_labels;
+  best_labels.clear();
   int best_count = 0;
   int label_num = local_labels.size();
 
   for (int i = 1; i < label_num; ++i) {
     if (local_labels[i] != local_labels[i - 1]) {
       if (curr_count > best_count) {
-        best_label = curr_label;
+//        best_label = curr_label;
+        best_labels.clear();
+        best_labels.emplace_back(curr_label);
         best_count = curr_count;
+      } else if (curr_count == best_count){
+        best_labels.emplace_back(curr_label);
       }
       curr_label = local_labels[i];
       curr_count = 1;
@@ -114,7 +119,13 @@ inline LABEL_T update_label_fast_filter(const ADJ_LIST_T& edges,
   if (curr_count > best_count) {
     return curr_label;
   } else {
-    return best_label;
+//    return best_label;
+    if (curr_count == best_count)
+      best_labels.emplace_back(curr_label);
+    for (LABEL_T l : best_labels){
+      if (l == original_label) return original_label;
+    }
+    return best_labels[0];
   }
 }
 
