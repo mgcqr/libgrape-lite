@@ -75,9 +75,10 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
               if (es.Empty()) {
                 ctx.changed[v] = false;
               } else {
-                label_t new_label = update_label_fast_filted
-                            <label_t, context_t, vid_t, fragment_t>
-                            (es, ctx.labels, ctx.labels[v], ctx, frag);//wuyufei
+                label_t new_label =
+                    update_label_fast_selected<label_t, context_t, vid_t,
+                                               fragment_t>(
+                        es, ctx.labels, ctx.labels[v], ctx, frag);//wuyufei
 
                 if (ctx.labels[v] != new_label) {
                   std::cout << "Change v" << frag.GetId(v) << " " << ctx.labels[v] << " -> " << new_label << std::endl;
@@ -115,6 +116,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
+    std::cout << "============ PEval ================\n";
     auto inner_vertices = frag.InnerVertices();
     auto outer_vertices = frag.OuterVertices();
 
@@ -155,6 +157,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 
   void IncEval(const fragment_t& frag, context_t& ctx,
                message_manager_t& messages) {
+    std::cout << "=============== IncEval round "<< ctx.step << " ==================\n";
     ++ctx.step;
 
 #ifdef PROFILING

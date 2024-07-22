@@ -71,75 +71,6 @@ inline LABEL_T update_label_fast(const ADJ_LIST_T& edges,
     return best_label;
   }
 }
-/**
- * @author wuyufei
- * quickfix that should not be use formally
- *
- * @tparam LABEL_T
- * @tparam VERTEX_ARRAY_T
- * @tparam ADJ_LIST_T
- * @param edges
- * @param labels
- * @param original_label
- * @return
- */
-template <typename LABEL_T, typename VERTEX_ARRAY_T, typename ADJ_LIST_T>
-inline LABEL_T update_label_fast_filter_quickfix(const ADJ_LIST_T& edges,
-                                 const VERTEX_ARRAY_T& labels,
-                                 const LABEL_T& original_label) {
-  static thread_local std::vector<LABEL_T> local_labels;
-  local_labels.clear();
-  for (auto& e : edges) {
-    if(labels[e.get_neighbor()] < 4)//wuyufei: filter for labels
-        local_labels.emplace_back(labels[e.get_neighbor()]);
-  }
-  if (local_labels.empty()){//wuyufei: avoid segment fault
-    return original_label;
-  }
-
-#ifdef USE_SIMD_SORT
-  avx512_qsort(local_labels.data(), local_labels.size());
-#else
-  std::sort(local_labels.begin(), local_labels.end());
-#endif
-
-  LABEL_T curr_label = local_labels[0];
-  int curr_count = 1;
-  static thread_local std::vector<LABEL_T> best_labels;
-  best_labels.clear();
-  int best_count = 0;
-  int label_num = local_labels.size();
-
-  for (int i = 1; i < label_num; ++i) {
-    if (local_labels[i] != local_labels[i - 1]) {
-      if (curr_count > best_count) {
-//        best_label = curr_label;
-        best_labels.clear();
-        best_labels.emplace_back(curr_label);
-        best_count = curr_count;
-      } else if (curr_count == best_count){
-        best_labels.emplace_back(curr_label);
-      }
-      curr_label = local_labels[i];
-      curr_count = 1;
-    } else {
-      ++curr_count;
-    }
-  }
-
-  if (curr_count > best_count) {
-    return curr_label;
-  } else {
-//    return best_label;
-    if (curr_count == best_count)
-      best_labels.emplace_back(curr_label);
-    for (LABEL_T l : best_labels){
-      if (l == original_label) return original_label;
-    }
-    return best_labels[0];
-  }
-}
-
 
 /**
  * @author wuyufei
@@ -163,7 +94,7 @@ inline LABEL_T update_label_fast_filter_quickfix(const ADJ_LIST_T& edges,
  * @return
  */
 template <typename LABEL_T, typename CONTEXT_T,typename VID_T, typename FRAG_T, typename VERTEX_ARRAY_T, typename ADJ_LIST_T>
-inline LABEL_T update_label_fast_filted(const ADJ_LIST_T& edges,
+inline LABEL_T update_label_fast_selected(const ADJ_LIST_T& edges,
                                  const VERTEX_ARRAY_T& labels,
                                  const LABEL_T& original_label,
                                  const CONTEXT_T& ctx,

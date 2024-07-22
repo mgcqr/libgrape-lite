@@ -100,7 +100,6 @@ class Worker {
     messages_.Start();
 
     messages_.StartARound();
-    std::cout << "============ PEval ================\n";
     runPEval();
     processMutation();
 
@@ -114,7 +113,6 @@ class Worker {
     int step = 1;
 
     while (!messages_.ToTerminate()) {
-      std::cout << "=========================== IncEval round "<< round << " ==================================\n";
       t = GetCurrentTime();
       round++;
       messages_.StartARound();

@@ -43,26 +43,8 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
   using label_t = typename context_t::label_t;
   using vid_t = typename context_t::vid_t;
 
-  /**
-   * wuyufei
-   *
-   *
-   * @param frag
-   * @param ctx
-   * @param messages
-   */
-  void printLabel(const fragment_t& frag, context_t& ctx,
-                      message_manager_t& messages){
-    auto inner_vertices = frag.InnerVertices();
-    std::cout << "current label\n";
-    for(auto v : inner_vertices ){
-      std::cout << "v" << v.GetValue() + 1 << " : " << ctx.labels[v] << std::endl;
-    }
-  }
-
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
                       message_manager_t& messages) {
-    std::cout << "PropagateLabel" << std::endl;
 #ifdef PROFILING
     ctx.preprocess_time -= GetCurrentTime();
 #endif
@@ -83,10 +65,8 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
               if (es.Empty()) {
                 ctx.changed[v] = false;
               } else {
-                label_t new_label = update_label_fast_filter_quickfix<label_t>(
-                    es, ctx.labels, ctx.labels[v]);//wuyufei
+                label_t new_label = update_label_fast<label_t>(es, ctx.labels);
                 if (ctx.labels[v] != new_label) {
-                  std::cout << "Change v" << v.GetValue() + 1 << " " << ctx.labels[v] << " -> " << new_label << std::endl;
                   new_ilabels[v] = new_label;
                   ctx.changed[v] = true;
                   messages.SendMsgThroughOEdges<fragment_t, label_t>(
@@ -148,7 +128,6 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
       ctx.labels[v] = frag.GetOuterVertexId(v);
     });
 #endif
-    printLabel(frag, ctx, messages);//wuyufei
     PropagateLabel(frag, ctx, messages);
   }
 
@@ -177,7 +156,6 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
 #ifdef PROFILING
     ctx.preprocess_time += GetCurrentTime();
 #endif
-    printLabel(frag, ctx, messages);//wuyufei
     PropagateLabel(frag, ctx, messages);
   }
 };
