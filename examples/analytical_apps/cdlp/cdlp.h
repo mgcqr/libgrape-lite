@@ -83,7 +83,8 @@ class CDLP : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
               if (es.Empty()) {
                 ctx.changed[v] = false;
               } else {
-                label_t new_label = update_label_fast_filter<label_t>(es, ctx.labels, ctx.labels[v]);//wuyufei
+                label_t new_label = update_label_fast_filter_quickfix<label_t>(
+                    es, ctx.labels, ctx.labels[v]);//wuyufei
                 if (ctx.labels[v] != new_label) {
                   std::cout << "Change v" << v.GetValue() + 1 << " " << ctx.labels[v] << " -> " << new_label << std::endl;
                   new_ilabels[v] = new_label;

@@ -7,10 +7,11 @@
 
 
 #include <grape/grape.h>
+#include <set>
 
-#include "cdlp/cdlp_context.h"
+#include <iostream>  //wuyufei
+#include "cdlp/cdlp_selective_context.h"
 #include "cdlp/cdlp_utils.h"
-#include <iostream>//wuyufei
 
 namespace grape {
 
@@ -25,9 +26,9 @@ namespace grape {
  * @tparam FRAG_T
  */
 template <typename FRAG_T>
-class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
+class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T>>,
              public ParallelEngine {
-  INSTALL_PARALLEL_WORKER(CDLP<FRAG_T>, CDLPContext<FRAG_T>, FRAG_T)
+  INSTALL_PARALLEL_WORKER(CDLPSelective<FRAG_T>, CDLPSelectiveContext<FRAG_T>, FRAG_T)
 
  private:
   using label_t = typename context_t::label_t;
@@ -46,8 +47,9 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
     auto inner_vertices = frag.InnerVertices();
     std::cout << "current label\n";
     for(auto v : inner_vertices ){
-      std::cout << "v" << v.GetValue() + 1 << " : " << ctx.labels[v] << std::endl;
+      std::cout << "v" << frag.GetId(v) << " : " << ctx.labels[v] << std::endl;
     }
+    std::cout << "valid label count :" << ctx.verticesWithValidLabel.Count() << std::endl;
   }
 
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
@@ -73,9 +75,12 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
               if (es.Empty()) {
                 ctx.changed[v] = false;
               } else {
-                label_t new_label = update_label_fast_filter<label_t>(es, ctx.labels, ctx.labels[v]);//wuyufei
+                label_t new_label = update_label_fast_filted
+                            <label_t, context_t, vid_t, fragment_t>
+                            (es, ctx.labels, ctx.labels[v], ctx, frag);//wuyufei
+
                 if (ctx.labels[v] != new_label) {
-                  std::cout << "Change v" << v.GetValue() + 1 << " " << ctx.labels[v] << " -> " << new_label << std::endl;
+                  std::cout << "Change v" << frag.GetId(v) << " " << ctx.labels[v] << " -> " << new_label << std::endl;
                   new_ilabels[v] = new_label;
                   ctx.changed[v] = true;
                   messages.SendMsgThroughOEdges<fragment_t, label_t>(
@@ -130,10 +135,17 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPContext<FRAG_T>>,
       ctx.labels[v] = frag.GetOuterVertexGid(v);
     });
 #else
+    ctx.verticesWithValidLabel.ParallelClear(GetThreadPool());
     ForEach(inner_vertices, [&frag, &ctx](int tid, vertex_t v) {
+      if (frag.GetData(v) == 1){//标签过滤逻辑
+        ctx.verticesWithValidLabel.Insert(v);
+      }
       ctx.labels[v] = frag.GetInnerVertexId(v);
     });
     ForEach(outer_vertices, [&frag, &ctx](int tid, vertex_t v) {
+      if (frag.GetData(v) == 1){
+        ctx.verticesWithValidLabel.Insert(v);
+      }
       ctx.labels[v] = frag.GetOuterVertexId(v);
     });
 #endif
