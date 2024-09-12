@@ -13,6 +13,8 @@
 #include "cdlp/cdlp_selective_context.h"
 #include "cdlp/cdlp_utils.h"
 
+#include "TEE_connection.h"
+
 namespace grape {
 
 /**
@@ -117,6 +119,10 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
     std::cout << "============ PEval ================\n";
+    
+    TEE_connection conn;
+    conn.increse();
+
     auto inner_vertices = frag.InnerVertices();
     auto outer_vertices = frag.OuterVertices();
 
