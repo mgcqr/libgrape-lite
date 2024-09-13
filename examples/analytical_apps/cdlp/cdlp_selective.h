@@ -13,7 +13,7 @@
 #include "cdlp/cdlp_selective_context.h"
 #include "cdlp/cdlp_utils.h"
 
-#include "TEE_connection.h"
+#include "TEE/TEE_connection.h"
 
 namespace grape {
 
