@@ -35,7 +35,7 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
  private:
   using label_t = typename context_t::label_t;
   using vid_t = typename context_t::vid_t;
-  std::vector<int> vertex_class_step;
+  std::vector<std::string> vertex_class_step;
   /**
    * wuyufei
    *
@@ -97,6 +97,7 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
               if (ctx.step < 3) {
                 for(auto e : es) {
                   vertex_t u = e.get_neighbor();
+                  ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
                   if (frag.IsInnerVertex(u)) {
                     ctx.active[e.get_neighbor()] = true;
                     ctx.labels[e.get_neighbor()] = 1;
@@ -110,6 +111,7 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
                 for(auto e : es) {
                   ctx.active[e.get_neighbor()] = true;
                   vertex_t u = e.get_neighbor();
+                  ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
                   int weight = static_cast<int>(e.get_data());
                   if (frag.IsInnerVertex(u)) {
                     ctx.labels[u] += weight;
@@ -146,14 +148,14 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
 
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
-    vertex_class_step.emplace_back(0);
-    vertex_class_step.emplace_back(1);
-    vertex_class_step.emplace_back(2);
-    vertex_class_step.emplace_back(3);
-    ctx.ostream.open("log" + std::to_string(frag.fid()));
+    vertex_class_step.emplace_back("Patient");
+    vertex_class_step.emplace_back("Symptom");
+    vertex_class_step.emplace_back("Disease");
+    vertex_class_step.emplace_back("Drug");
+    ctx.ostream.open("log" + std::to_string(frag.fid()) + ".txt");
     ctx.ostream << "============ PEval ================\n";
-    auto inner_vertices = frag.InnerVertices();
-    auto outer_vertices = frag.OuterVertices();
+    // auto inner_vertices = frag.InnerVertices();
+    // auto outer_vertices = frag.OuterVertices();
 
     messages.InitChannels(thread_num());
 
@@ -165,24 +167,24 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
     }
 
 
-    ForEach(inner_vertices, [&frag, &ctx, this](int tid, vertex_t v) {
-      int vlabel = frag.GetData(v);
-      int tar = vertex_class_step[ctx.step - 1];
-      if (vlabel == tar){//标签过滤逻辑
-        ctx.labels[v] = 1;
-        ctx.active[v] = true;
-      } else {
-        ctx.labels[v] = 0;
-      }
-    });
-    ForEach(outer_vertices, [&frag, &ctx, this](int tid, vertex_t v) {
-      if (frag.GetData(v) == vertex_class_step[ctx.step - 1]){
-        ctx.labels[v] = 1;
-        ctx.active[v] = true;
-      }else {
-        ctx.labels[v] = 0;
-      }
-    });
+    // ForEach(inner_vertices, [&frag, &ctx, this](int tid, vertex_t v) {
+    //   std::string vlabel = frag.GetData(v);
+    //   std::string tar = vertex_class_step[ctx.step - 1];
+    //   if (vlabel == tar){//标签过滤逻辑
+    //     ctx.labels[v] = 1;
+    //     ctx.active[v] = true;
+    //   } else {
+    //     ctx.labels[v] = 0;
+    //   }
+    // });
+    // ForEach(outer_vertices, [&frag, &ctx, this](int tid, vertex_t v) {
+    //   if (frag.GetData(v) == vertex_class_step[ctx.step - 1]){
+    //     ctx.labels[v] = 1;
+    //     ctx.active[v] = true;
+    //   }else {
+    //     ctx.labels[v] = 0;
+    //   }
+    // });
     printLabel(frag, ctx, messages);//wuyufei
     PropagateLabel(frag, ctx, messages);
   }

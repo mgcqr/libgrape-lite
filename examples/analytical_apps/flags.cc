@@ -38,6 +38,7 @@ DEFINE_double(pr_d, 0.85, "damping_factor of pagerank");
 DEFINE_int32(pr_mr, 10, "max rounds of pagerank");
 DEFINE_int32(degree_threshold, std::numeric_limits<int>::max(),
              "Filtering threshold for some algorithms");
+DEFINE_int64(drug_patient, 0, "vertex id of patient to recommend drug");
 
 DEFINE_bool(opt, false, "whether to use optimization.");
 

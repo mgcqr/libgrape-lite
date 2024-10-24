@@ -277,8 +277,8 @@ void Run() {
                      CDLPSelective, int>(comm_spec, out_prefix, fnum, spec,
                                 FLAGS_cdlp_mr);
     } else if (name == "drug_recommendation") {//DrugRecommendation
-      CreateAndQuery<OID_T, VID_T, int, int, LoadStrategy::kOnlyOut,//VDATA_T无法通过run_app.cc传进来，必须这里手写，grape的bug，sssp的EDATA_T也是这样
-                     DrugRecommendation>(comm_spec, out_prefix, fnum, spec);
+      CreateAndQuery<OID_T, VID_T, std::string, int, LoadStrategy::kOnlyOut,//VDATA_T无法通过run_app.cc传进来，必须这里手写，grape的bug，sssp的EDATA_T也是这样
+                     DrugRecommendation>(comm_spec, out_prefix, fnum, spec, FLAGS_drug_patient);
     } else {
       LOG(FATAL) << "No avaiable application named [" << name << "].";
     }

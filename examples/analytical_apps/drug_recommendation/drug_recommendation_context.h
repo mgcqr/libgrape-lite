@@ -46,18 +46,20 @@ public:
         labels(this->data()) {
   }
 
-  void Init(ParallelMessageManager& messages ) {
+  void Init(ParallelMessageManager& messages, int patientId ) {
     auto& frag = this->fragment();
     auto inner_vertices = frag.InnerVertices();
-
+    Vertex<vid_t> patientVertex;
+    frag.GetVertex(patientId, patientVertex);
     active.Init(inner_vertices);
+    active[patientVertex] = true;
+    step = 0;
 
 #ifdef PROFILING
     preprocess_time = 0;
     exec_time = 0;
     postprocess_time = 0;
 #endif
-    step = 0;
   }
 
   void Output(std::ostream& os) override {
