@@ -1,9 +1,9 @@
-0 Symptom 
-1 Symptom 
-2 Disease 
-3 Disease 
-4 Drug 
-5 Drug 
-6 Drug 
-7 Patient 
-8 Patient 
+0 0 Symptom 
+1 0 Symptom 
+2 0 Disease 
+3 0 Disease 
+4 0 Drug 
+5 0 Drug 
+6 0 Drug 
+7 1 Patient 
+8 1 Patient 

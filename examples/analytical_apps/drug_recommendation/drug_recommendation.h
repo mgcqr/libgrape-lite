@@ -88,44 +88,32 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
                 return;
               }
 
-
               printLabel(frag, ctx, messages);
-
 
               auto& channel_0 = messages.Channels()[0];
               auto es = frag.GetOutgoingAdjList(v);
-              if (ctx.step < 3) {
-                for(auto e : es) {
-                  vertex_t u = e.get_neighbor();
-                  ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
+              ctx.ostream << "AdjList got" << std::endl;
+              for(auto e : es) {
+                vertex_t u = e.get_neighbor();
+                ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
+                if(ctx.step < 3) {
                   if (frag.IsInnerVertex(u)) {
-                    ctx.active[e.get_neighbor()] = true;
-                    ctx.labels[e.get_neighbor()] = 1;
-                  } else if (frag.IsOuterVertex(u)) {
+                    ctx.active[u] = true;
+                    ctx.labels[u] = 1;
+                  } else {
                     channel_0.SyncStateOnOuterVertex<fragment_t, label_t>(frag, u, 1);
                   }
-                }
-                // messages.SendMsgThroughOEdges<fragment_t, label_t>(
-                //    frag, v, 1, tid);
-              } else if (ctx.step == 3) {//step = 3
-                for(auto e : es) {
-                  ctx.active[e.get_neighbor()] = true;
-                  vertex_t u = e.get_neighbor();
-                  ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
+                }else if (ctx.step == 3) {
                   int weight = static_cast<int>(e.get_data());
                   if (frag.IsInnerVertex(u)) {
+                    ctx.active[u] = true;
                     ctx.labels[u] += weight;
-                  }else if (frag.IsOuterVertex(u)){
-                    channel_0.SyncStateOnOuterVertex<fragment_t, label_t>(frag, u, weight);
-                  }
-
+                    }else {
+                      channel_0.SyncStateOnOuterVertex<fragment_t, label_t>(frag, u, weight);
+                    }
                 }
-              } else if (ctx.step == 4) {
-
               }
               ctx.active[v] = false;
-
-
             });
 
 #ifdef PROFILING
