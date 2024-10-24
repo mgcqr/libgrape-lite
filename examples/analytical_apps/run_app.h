@@ -30,6 +30,7 @@ limitations under the License.
 #include <glog/logging.h>
 
 #include <grape/fragment/immutable_edgecut_fragment.h>
+#include <grape/fragment/immutable_trusted_edgecut_fragment.h>
 #include <grape/fragment/loader.h>
 #include <grape/grape.h>
 #include <grape/util.h>
@@ -43,7 +44,6 @@ limitations under the License.
 #include "bfs/bfs_auto.h"
 #include "cdlp/cdlp.h"
 #include "cdlp/cdlp_auto.h"
-#include "cdlp/cdlp_selective.h"//添加新算法
 #include "flags.h"
 #include "lcc/lcc.h"
 #include "lcc/lcc_auto.h"
@@ -58,7 +58,6 @@ limitations under the License.
 #include "timer.h"
 #include "wcc/wcc.h"
 #include "wcc/wcc_auto.h"
-#include "drug_recommendation/drug_recommendation.h"
 
 #ifndef __AFFINITY__
 #define __AFFINITY__ false
@@ -130,12 +129,24 @@ void CreateAndQuery(const CommSpec& comm_spec, const std::string& out_prefix,
   LoadGraphSpec graph_spec = DefaultLoadGraphSpec();
   graph_spec.set_directed(FLAGS_directed);
   graph_spec.set_rebalance(FLAGS_rebalance, FLAGS_rebalance_vertex_factor);
+  graph_spec.set_secret(FLAGS_secret);
   if (FLAGS_deserialize) {
     graph_spec.set_deserialize(true, FLAGS_serialization_prefix);
   } else if (FLAGS_serialize) {
     graph_spec.set_serialize(true, FLAGS_serialization_prefix);
   }
-  if (FLAGS_segmented_partition) {
+  if (FLAGS_secret) {
+    using VertexMapType =
+        GlobalVertexMap<OID_T, VID_T, PrivacyPartitioner<OID_T>>;
+    using FRAG_T = ImmutableTrustedEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T,
+                                            load_strategy, VertexMapType>;
+    std::shared_ptr<FRAG_T> fragment =
+        LoadGraph<FRAG_T>(FLAGS_efile, FLAGS_vfile, comm_spec, graph_spec);
+    using AppType = APP_T<FRAG_T>;
+    auto app = std::make_shared<AppType>();
+    DoQuery<FRAG_T, AppType, Args...>(fragment, app, comm_spec, spec,
+                                      out_prefix, args...);
+  } else if (FLAGS_segmented_partition) {
     using VertexMapType =
         GlobalVertexMap<OID_T, VID_T, SegmentedPartitioner<OID_T>>;
     using FRAG_T = ImmutableEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T,
@@ -272,13 +283,6 @@ void Run() {
       CreateAndQuery<OID_T, VID_T, VDATA_T, EmptyType, LoadStrategy::kOnlyOut,
                      LCC>(comm_spec, out_prefix, fnum, spec,
                           FLAGS_degree_threshold);
-    } else if (name == "cdlp_selective"){
-      CreateAndQuery<OID_T, VID_T, int, EmptyType, LoadStrategy::kOnlyOut,//VDATA_T无法通过run_app.cc传进来，必须这里手写，grape的bug，sssp的EDATA_T也是这样
-                     CDLPSelective, int>(comm_spec, out_prefix, fnum, spec,
-                                FLAGS_cdlp_mr);
-    } else if (name == "drug_recommendation") {//DrugRecommendation
-      CreateAndQuery<OID_T, VID_T, std::string, int, LoadStrategy::kOnlyOut,//VDATA_T无法通过run_app.cc传进来，必须这里手写，grape的bug，sssp的EDATA_T也是这样
-                     DrugRecommendation>(comm_spec, out_prefix, fnum, spec, FLAGS_drug_patient);
     } else {
       LOG(FATAL) << "No avaiable application named [" << name << "].";
     }

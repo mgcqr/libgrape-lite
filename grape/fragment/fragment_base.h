@@ -66,9 +66,10 @@ class FragmentBase {
   const std::shared_ptr<vertex_map_t> GetVertexMap() const { return vm_ptr_; }
 
  protected:
-  void init(fid_t fid, bool directed) {
+  void init(fid_t fid, bool directed, bool secret = false) {
     fid_ = fid;
     directed_ = directed;
+    secret_ = secret;
     fnum_ = vm_ptr_->GetFragmentNum();
     id_parser_.init(fnum_);
     ivnum_ = vm_ptr_->GetInnerVertexSize(fid);
@@ -84,7 +85,7 @@ class FragmentBase {
    */
   virtual void Init(fid_t fid, bool directed,
                     std::vector<internal::Vertex<VID_T, VDATA_T>>& vertices,
-                    std::vector<Edge<VID_T, EDATA_T>>& edges) = 0;
+                    std::vector<Edge<VID_T, EDATA_T>>& edges, bool secret = false) = 0;
 
   /**
    * @brief For some kind of applications, specific data structures will be
@@ -101,6 +102,13 @@ class FragmentBase {
    * @return true if the fragment is directed, false otherwise.
    */
   bool directed() const { return directed_; }
+
+  /**
+   * @brief Returns true if the fragment is secret, false otherwise.
+   *
+   * @return true if the fragment is secret, false otherwise.
+   */
+  bool secret() const { return secret_; }
 
   /**
    * @brief Returns the ID of this fragment.
@@ -323,6 +331,7 @@ class FragmentBase {
 
   fid_t fid_, fnum_;
   bool directed_;
+  bool secret_;
   VID_T ivnum_;
 
   vertices_t vertices_;

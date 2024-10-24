@@ -26,6 +26,7 @@ DEFINE_string(vfile, "", "vertex file");
 DEFINE_string(out_prefix, "", "output directory of results");
 DEFINE_string(jobid, "", "jobid, only used in LDBC graphanalytics.");
 DEFINE_bool(directed, false, "input graph is directed or not.");
+DEFINE_bool(secret, false, "input graph has secret data or not.");
 
 DEFINE_int64(vertex_num, -1, "vertex number");
 DEFINE_int64(edge_num, -1, "edge number");

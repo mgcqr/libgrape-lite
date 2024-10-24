@@ -35,7 +35,9 @@ class HashPartitioner {
   HashPartitioner() : fnum_(1) {}
   explicit HashPartitioner(size_t frag_num) : fnum_(frag_num) {}
   HashPartitioner(size_t frag_num, std::vector<OID_T>&) : fnum_(frag_num) {}
-
+  HashPartitioner(size_t frag_num, const ska::flat_hash_map<OID_T, double>&) : fnum_(frag_num) {
+    std::cout<<"hash "<<frag_num<<'\n';
+  }
   inline fid_t GetPartitionId(const OID_T& oid) const {
     return static_cast<fid_t>(static_cast<uint64_t>(oid) % fnum_);
   }
@@ -82,6 +84,7 @@ class HashPartitioner<std::string> {
 
   HashPartitioner() : fnum_(1) {}
   explicit HashPartitioner(size_t frag_num) : fnum_(frag_num) {}
+  HashPartitioner(size_t frag_num, const ska::flat_hash_map<oid_t, double>&) : fnum_(frag_num) {}
   HashPartitioner(size_t frag_num, std::vector<std::string>&)
       : fnum_(frag_num) {}
 
@@ -146,10 +149,12 @@ class SegmentedPartitioner {
  public:
   SegmentedPartitioner() : fnum_(1) {}
   explicit SegmentedPartitioner(size_t frag_num) : fnum_(frag_num) {}
+  SegmentedPartitioner(size_t frag_num, const ska::flat_hash_map<OID_T, double>&) : fnum_(frag_num) {}
   SegmentedPartitioner(size_t frag_num, std::vector<OID_T>& oid_list) {
     fnum_ = frag_num;
     size_t vnum = oid_list.size();
     size_t frag_vnum = (vnum + fnum_ - 1) / fnum_;
+    std::cout<<vnum<<" seg "<<frag_num<<'\n';
     o2f_.reserve(vnum);
     for (size_t i = 0; i < vnum; ++i) {
       fid_t fid = static_cast<fid_t>(i / frag_vnum);
@@ -206,6 +211,7 @@ class SegmentedPartitioner<std::string> {
  public:
   SegmentedPartitioner() : fnum_(1) {}
   explicit SegmentedPartitioner(size_t frag_num) : fnum_(frag_num) {}
+  SegmentedPartitioner(size_t frag_num, const ska::flat_hash_map<oid_t, double>&) : fnum_(frag_num) {}
   SegmentedPartitioner(size_t frag_num, std::vector<oid_t>& oid_list) {
     fnum_ = frag_num;
     size_t vnum = oid_list.size();
@@ -265,6 +271,77 @@ class SegmentedPartitioner<std::string> {
   fid_t fnum_;
   ska::flat_hash_map<oid_t, fid_t> o2f_;
 };
+
+template <typename OID_T>
+class PrivacyPartitioner {
+  public:
+  PrivacyPartitioner() : fnum_(2) {}
+  explicit PrivacyPartitioner(size_t frag_num) : fnum_(2) {}
+  PrivacyPartitioner(size_t frag_num, std::vector<OID_T>&) : fnum_(2) {}
+
+  PrivacyPartitioner(size_t frag_num, const ska::flat_hash_map<OID_T, double>& o2p_) {
+    //fnum_ = frag_num;
+    fnum_ = 2;
+    size_t vnum = o2p_.size();
+    o2f_.reserve(vnum);
+    for (auto it = o2p_.begin(); it != o2p_.end(); it++) {
+      OID_T oid = it->first;
+      double secret = it->second;
+      std::cout<<oid<<' '<<secret<<'\n';
+      if (secret == 0.0) {
+        o2f_.emplace(oid, 0);
+      } else {
+        o2f_.emplace(oid, 1);
+      }
+    }
+  }
+
+  inline fid_t GetPartitionId(const OID_T& oid) const { return o2f_.at(oid); }
+
+  void SetPartitionId(const OID_T& oid, fid_t fid) { o2f_[oid] = fid; }
+
+  PrivacyPartitioner& operator=(const PrivacyPartitioner& other) {
+    if (this == &other) {
+      return *this;
+    }
+    fnum_ = other.fnum_;
+    o2f_ = other.o2f_;
+    return *this;
+  }
+
+  PrivacyPartitioner& operator=(PrivacyPartitioner&& other) {
+    if (this == &other) {
+      return *this;
+    }
+    fnum_ = other.fnum_;
+    o2f_ = std::move(other.o2f_);
+    return *this;
+  }
+
+  template <typename IOADAPTOR_T>
+  void serialize(std::unique_ptr<IOADAPTOR_T>& writer) {
+    InArchive arc;
+    arc << fnum_ << o2f_;
+    CHECK(writer->WriteArchive(arc));
+  }
+
+  template <typename IOADAPTOR_T>
+  void deserialize(std::unique_ptr<IOADAPTOR_T>& reader) {
+    OutArchive arc;
+    CHECK(reader->ReadArchive(arc));
+    arc >> fnum_ >> o2f_;
+  }
+
+ private:
+  fid_t fnum_;
+  ska::flat_hash_map<OID_T, fid_t> o2f_;
+};
+
+// template <>
+// class PrivacyPartitioner<std::string> {
+  
+// };
+
 
 }  // namespace grape
 

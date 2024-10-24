@@ -19,6 +19,7 @@ limitations under the License.
 #include <gflags/gflags_declare.h>
 
 DECLARE_bool(directed);
+DECLARE_bool(secret);
 DECLARE_string(application);
 DECLARE_string(efile);
 DECLARE_string(vfile);
