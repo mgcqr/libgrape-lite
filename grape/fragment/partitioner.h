@@ -275,13 +275,13 @@ class SegmentedPartitioner<std::string> {
 template <typename OID_T>
 class PrivacyPartitioner {
   public:
-  PrivacyPartitioner() : fnum_(2) {}
-  explicit PrivacyPartitioner(size_t frag_num) : fnum_(2) {}
-  PrivacyPartitioner(size_t frag_num, std::vector<OID_T>&) : fnum_(2) {}
+  PrivacyPartitioner() : fnum_(1) {}
+  explicit PrivacyPartitioner(size_t frag_num) : fnum_(std::min(frag_num, (size_t)2)) {}
+  PrivacyPartitioner(size_t frag_num, std::vector<OID_T>&) : fnum_(std::min(frag_num, (size_t)2)) {}
 
   PrivacyPartitioner(size_t frag_num, const ska::flat_hash_map<OID_T, double>& o2p_) {
     //fnum_ = frag_num;
-    fnum_ = 2;
+    fnum_ = std::min(frag_num, (size_t)2);
     size_t vnum = o2p_.size();
     o2f_.reserve(vnum);
     for (auto it = o2p_.begin(); it != o2p_.end(); it++) {
@@ -291,7 +291,8 @@ class PrivacyPartitioner {
       if (secret == 0.0) {
         o2f_.emplace(oid, 0);
       } else {
-        o2f_.emplace(oid, 1);
+        if(fnum_) o2f_.emplace(oid, 1);
+        else o2f_.emplace(oid, 0);
       }
     }
   }
