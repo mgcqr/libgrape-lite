@@ -291,7 +291,7 @@ class PrivacyPartitioner {
       if (secret == 0.0) {
         o2f_.emplace(oid, 0);
       } else {
-        if(fnum_) o2f_.emplace(oid, 1);
+        if (fnum_ > 1) o2f_.emplace(oid, 1);
         else o2f_.emplace(oid, 0);
       }
     }
