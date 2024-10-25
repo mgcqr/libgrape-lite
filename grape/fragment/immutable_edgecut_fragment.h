@@ -204,7 +204,7 @@ class ImmutableEdgecutFragment
 
   void Init(fid_t fid, bool directed, std::vector<internal_vertex_t>& vertices,
             std::vector<edge_t>& edges, bool secret = false) override {
-    init(fid, directed);
+    init(fid, directed, secret);
 
     static constexpr VID_T invalid_vid = std::numeric_limits<VID_T>::max();
     {

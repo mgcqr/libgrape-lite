@@ -30,7 +30,6 @@ limitations under the License.
 #include <glog/logging.h>
 
 #include <grape/fragment/immutable_edgecut_fragment.h>
-#include <grape/fragment/immutable_trusted_edgecut_fragment.h>
 #include <grape/fragment/loader.h>
 #include <grape/grape.h>
 #include <grape/util.h>
@@ -139,7 +138,7 @@ void CreateAndQuery(const CommSpec& comm_spec, const std::string& out_prefix,
   if (FLAGS_secret) {
     using VertexMapType =
         GlobalVertexMap<OID_T, VID_T, PrivacyPartitioner<OID_T>>;
-    using FRAG_T = ImmutableTrustedEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T,
+    using FRAG_T = ImmutableEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T,
                                             load_strategy, VertexMapType>;
     std::shared_ptr<FRAG_T> fragment =
         LoadGraph<FRAG_T>(FLAGS_efile, FLAGS_vfile, comm_spec, graph_spec);

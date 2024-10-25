@@ -122,7 +122,7 @@ class EVTrustedFragmentLoader {
         if (line.empty() || line[0] == '#')
           continue;
         try {
-        	line_parser_.TLineParserForVFile(line, vertex_id, v_p, v_data);
+        	line_parser_.TLineParserForVFile(line, vertex_id, v_data, v_p);
         } catch (std::exception& e) {
           VLOG(1) << e.what();
           continue;
@@ -169,7 +169,7 @@ class EVTrustedFragmentLoader {
           continue;
 
         try {
-          line_parser_.TLineParserForEFile(line, src, dst, e_p, e_data);
+          line_parser_.TLineParserForEFile(line, src, dst, e_data, e_p);
         } catch (std::exception& e) {
           VLOG(1) << e.what();
           continue;
@@ -179,26 +179,26 @@ class EVTrustedFragmentLoader {
 				e_p_list.push_back(e_p);
         edata_list.push_back(e_data);
 
-				// degree_[src]++;
-				// degree_[dst]++; 
-
+				degree_[src]++;
+				degree_[dst]++; 
+        
 				if (e_p != 0) {
-					o2p_[src] = 1.0;
-					//o2p_[dst] += 1.0;
+					o2p_[src] += 1.0;
+					o2p_[dst] += 1.0;
 				} else if (secret_vertices.count(src) || secret_vertices.count(dst)) {
-						o2p_[src] = 1.0;
-						o2p_[dst] = 1.0;
+						o2p_[src] += 1.0;
+						o2p_[dst] += 1.0;
 				}
       }
       io_adaptor->Close();
     }
 
-		// {
-    //   size_t vnum = id_list.size();
-    //   for (size_t i = 0; i < vnum; ++i) {
-    //     o2p_[id_list[i]] /= degree_[id_list[i]];
-    //   }
-		// }
+		{
+      size_t vnum = id_list.size();
+      for (size_t i = 0; i < vnum; ++i) {
+        o2p_[id_list[i]] /= degree_[id_list[i]];
+      }
+		}
 
 		partitioner_t partitioner(comm_spec_.fnum(), o2p_);
 
@@ -215,7 +215,7 @@ class EVTrustedFragmentLoader {
       //std::cout<<enum_<<'\n';
       if (comm_spec_.worker_id() == 0) {
         for (size_t i = 0; i < enum_; ++i) {
-          std::cout<<src_list[i]<<' '<<dst_list[i]<<'\n';
+          //std::cout<<src_list[i]<<' '<<dst_list[i]<<'\n';
           basic_fragment_loader_.AddEdge(src_list[i], dst_list[i], e_p_list[i], edata_list[i]);
         }
       }

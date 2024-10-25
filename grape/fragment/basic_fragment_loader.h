@@ -463,7 +463,7 @@ class BasicTrustedFragmentLoader {
     internal_oid_t internal_dst(dst);
     auto& partitioner = vm_ptr_->GetPartitioner();
     fid_t src_fid = partitioner.GetPartitionId(internal_src);
-    fid_t dst_fid = secret ? src_fid : partitioner.GetPartitionId(internal_dst);
+    fid_t dst_fid = partitioner.GetPartitionId(internal_dst);
 		++edge_num;
     edges_to_frag_[src_fid].Emplace(internal_src, internal_dst, secret, data);
     if (src_fid != dst_fid) {
@@ -549,11 +549,11 @@ class BasicTrustedFragmentLoader {
     for (auto& buffers : got_edges_) {
       foreach_helper(
           buffers,
-          [&builder](const internal_oid_t& src, const internal_oid_t& dst, const int32_t& secret) {
+          [&builder](const internal_oid_t& src, const internal_oid_t& dst) {
             builder.add_vertex(src);
-            if (!secret) builder.add_vertex(dst);
+            builder.add_vertex(dst);
           },
-          make_index_sequence<3>{});
+          make_index_sequence<2>{});
     }
     builder.finish(*vm_ptr_);
 
@@ -574,7 +574,7 @@ class BasicTrustedFragmentLoader {
                                    edata_t&& data) {
         vid_t src_gid, dst_gid;
         CHECK(vm_ptr_->_GetGid(src, src_gid));
-        if (!secret) CHECK(vm_ptr_->_GetGid(dst, dst_gid));
+        CHECK(vm_ptr_->_GetGid(dst, dst_gid));
         processed_edges_.emplace_back(src_gid, dst_gid, std::move(data), secret);
       });
     }
