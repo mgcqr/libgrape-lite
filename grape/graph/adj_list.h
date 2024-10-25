@@ -60,11 +60,13 @@ struct Nbr {
   DEV_HOST_INLINE Nbr& operator=(const Nbr& rhs) {
     neighbor = rhs.neighbor;
     data = rhs.data;
+    secret = rhs.secret;
     return *this;
   }
   DEV_HOST_INLINE Nbr& operator=(Nbr&& rhs) {
     neighbor = std::move(rhs.neighbor);
     data = std::move(rhs.data);
+    secret = std::move(rhs.secret);
     return *this;
   }
 
