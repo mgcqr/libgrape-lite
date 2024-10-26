@@ -73,6 +73,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
     // touch neighbor and send messages in parallel
     ForEach(inner_vertices,
             [&frag, &ctx, &new_ilabels, &messages](int tid, vertex_t v) {
+              auto *conn = new TEE_connection;
               auto es = frag.GetOutgoingAdjList(v);
               if (es.Empty()) {
                 ctx.changed[v] = false;
@@ -80,9 +81,9 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
                 label_t new_label =
                     update_label_fast_selected<label_t, context_t, vid_t,
                                                fragment_t>(
-                        es, ctx.labels, ctx.labels[v], ctx, frag);//wuyufei
+                        es, ctx.labels, ctx.labels[v], ctx, frag, conn);//wuyufei
 
-                if (ctx.labels[v] != new_label) {
+                if (!conn->is_equal(ctx.labels[v] , new_label)) {
                   std::cout << "Change v" << frag.GetId(v) << " " << ctx.labels[v] << " -> " << new_label << std::endl;
                   new_ilabels[v] = new_label;
                   ctx.changed[v] = true;
@@ -92,6 +93,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
                   ctx.changed[v] = false;
                 }
               }
+              delete conn;
             });
 
 #ifdef PROFILING
@@ -119,10 +121,6 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
     std::cout << "============ PEval ================\n";
-    
-    TEE_connection conn;
-    conn.increse();
-
     auto inner_vertices = frag.InnerVertices();
     auto outer_vertices = frag.OuterVertices();
 
@@ -145,16 +143,20 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 #else
     ctx.verticesWithValidLabel.ParallelClear(GetThreadPool());
     ForEach(inner_vertices, [&frag, &ctx](int tid, vertex_t v) {
-      if (frag.GetData(v) == 1){//标签过滤逻辑
+      auto *conn = new TEE_connection;
+      if (conn->is_equal(frag.GetData(v), 1)){//标签过滤逻辑
         ctx.verticesWithValidLabel.Insert(v);
       }
       ctx.labels[v] = frag.GetInnerVertexId(v);
+      delete conn;
     });
     ForEach(outer_vertices, [&frag, &ctx](int tid, vertex_t v) {
-      if (frag.GetData(v) == 1){
+      auto *conn = new TEE_connection;
+      if (conn->is_equal(frag.GetData(v), 1)){
         ctx.verticesWithValidLabel.Insert(v);
       }
       ctx.labels[v] = frag.GetOuterVertexId(v);
+      delete conn;
     });
 #endif
     printLabel(frag, ctx, messages);//wuyufei

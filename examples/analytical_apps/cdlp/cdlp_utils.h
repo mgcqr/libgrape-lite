@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef EXAMPLES_ANALYTICAL_APPS_CDLP_CDLP_UTILS_H_
 #define EXAMPLES_ANALYTICAL_APPS_CDLP_CDLP_UTILS_H_
 
+#include <TEE/TEE_connection.h>
 #include <algorithm>
 #include <random>
 #include <vector>
@@ -91,6 +92,7 @@ inline LABEL_T update_label_fast(const ADJ_LIST_T& edges,
  * @param original_label
  * @param ctx
  * @param frag
+ * @param conn
  * @return
  */
 template <typename LABEL_T, typename CONTEXT_T,typename VID_T, typename FRAG_T, typename VERTEX_ARRAY_T, typename ADJ_LIST_T>
@@ -98,10 +100,10 @@ inline LABEL_T update_label_fast_selected(const ADJ_LIST_T& edges,
                                  const VERTEX_ARRAY_T& labels,
                                  const LABEL_T& original_label,
                                  const CONTEXT_T& ctx,
-                                 const FRAG_T& frag) {
+                                 const FRAG_T& frag,
+                                 TEE_connection* conn) {
   static thread_local std::vector<LABEL_T> local_labels;
   local_labels.clear();
-
   LABEL_T srcLabel;;
   Vertex<VID_T> v;
   for (auto& e : edges) {
@@ -128,7 +130,7 @@ inline LABEL_T update_label_fast_selected(const ADJ_LIST_T& edges,
   int label_num = local_labels.size();
 
   for (int i = 1; i < label_num; ++i) {
-    if (local_labels[i] != local_labels[i - 1]) {
+    if (!conn->is_equal(local_labels[i],local_labels[i - 1])) {
       if (curr_count > best_count) {
 //        best_label = curr_label;
         best_labels.clear();

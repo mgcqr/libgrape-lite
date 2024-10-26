@@ -18,7 +18,7 @@
 
 class TEE_connection {
     public:
-      int increse(){
+      bool is_equal(int first, int second){
           TEEC_Result res;
           TEEC_Context ctx;
           TEEC_Session sess;
@@ -56,21 +56,22 @@ class TEE_connection {
            * Prepare the argument. Pass a value in the first parameter,
            * the remaining three parameters are unused.
            */
-          op.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INOUT, TEEC_NONE,
-                           TEEC_NONE, TEEC_NONE);
-          op.params[0].value.a = 42;
-
+          op.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INOUT, TEEC_VALUE_INOUT,
+                                           TEEC_VALUE_INOUT, TEEC_NONE);
+          op.params[0].value.a = first;
+          op.params[1].value.a = second;
+          op.params[2].value.a = 0;
           /*
            * TA_HELLO_WORLD_CMD_INC_VALUE is the actual function in the TA to be
            * called.
            */
-          printf("Invoking TA to increment %d\n", op.params[0].value.a);
+          printf("Invoking TA to compare %d %d\n", op.params[0].value.a,op.params[1].value.a);
           res = TEEC_InvokeCommand(&sess, TA_TEE_CONNECTION_CMD_INC_VALUE, &op,
                        &err_origin);
           if (res != TEEC_SUCCESS)
               errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
                   res, err_origin);
-          printf("TA incremented value to %d\n", op.params[0].value.a);
+          printf("TA results: %d\n", op.params[2].value.a);
 
           /*
            * We're done with the TA, close the session and
@@ -84,7 +85,7 @@ class TEE_connection {
 
           TEEC_FinalizeContext(&ctx);
 
-          return 0;
+          return op.params[2].value.a;
       }
 
 };
