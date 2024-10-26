@@ -344,7 +344,7 @@ class EVFragmentRebalanceLoader {
 
     fragment = std::shared_ptr<fragment_t>(new fragment_t(vm_ptr));
     fragment->Init(comm_spec_.fid(), spec.directed, processed_vertices,
-                   processed_edges);
+                   processed_edges, false);
 
     if (!std::is_same<vdata_t, EmptyType>::value) {
       for (size_t i = 0; i < vertex_num; ++i) {

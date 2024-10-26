@@ -19,6 +19,7 @@ limitations under the License.
 #include <gflags/gflags_declare.h>
 
 DECLARE_bool(directed);
+DECLARE_bool(secret);
 DECLARE_string(application);
 DECLARE_string(efile);
 DECLARE_string(vfile);
@@ -33,6 +34,7 @@ DECLARE_int64(sssp_source);
 DECLARE_double(pr_d);
 DECLARE_int32(pr_mr);
 DECLARE_int32(cdlp_mr);
+DECLARE_int64(drug_patient);
 
 DECLARE_int32(degree_threshold);
 

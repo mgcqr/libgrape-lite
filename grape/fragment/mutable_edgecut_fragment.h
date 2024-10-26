@@ -107,7 +107,7 @@ class MutableEdgecutFragment
   static std::string type_info() { return ""; }
 
   void Init(fid_t fid, bool directed, std::vector<internal_vertex_t>& vertices,
-            std::vector<edge_t>& edges) override {
+            std::vector<edge_t>& edges, bool secret = false) override {
     init(fid, directed);
 
     ovnum_ = 0;

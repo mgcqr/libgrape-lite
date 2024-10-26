@@ -20,6 +20,7 @@ limitations under the License.
 #include <string>
 
 #include "grape/fragment/ev_fragment_loader.h"
+#include "grape/fragment/ev_trusted_fragment_loader.h"
 #include "grape/fragment/ev_fragment_mutator.h"
 #include "grape/fragment/ev_fragment_rebalance_loader.h"
 #include "grape/fragment/partitioner.h"
@@ -48,9 +49,13 @@ static std::shared_ptr<FRAG_T> LoadGraph(
     const std::string& efile, const std::string& vfile,
     const CommSpec& comm_spec,
     const LoadGraphSpec& spec = DefaultLoadGraphSpec()) {
-  if (spec.rebalance) {
-    std::unique_ptr<
-        EVFragmentRebalanceLoader<FRAG_T, IOADAPTOR_T, LINE_PARSER_T>>
+  if (spec.secret) {
+    std::unique_ptr<EVTrustedFragmentLoader<FRAG_T, IOADAPTOR_T, LINE_PARSER_T>>
+        loader(new EVTrustedFragmentLoader<FRAG_T, IOADAPTOR_T, LINE_PARSER_T>(
+            comm_spec));
+    return loader->LoadFragment(efile, vfile, spec);
+  } else if (spec.rebalance) {
+    std::unique_ptr<EVFragmentRebalanceLoader<FRAG_T, IOADAPTOR_T, LINE_PARSER_T>>
         loader(
             new EVFragmentRebalanceLoader<FRAG_T, IOADAPTOR_T, LINE_PARSER_T>(
                 comm_spec));

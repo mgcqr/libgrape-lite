@@ -19,7 +19,6 @@ limitations under the License.
 #include <deque>
 
 #include "grape/config.h"
-#include "grape/util.h"
 #include "grape/utils/concurrent_queue.h"
 
 namespace grape {

@@ -26,6 +26,7 @@ DEFINE_string(vfile, "", "vertex file");
 DEFINE_string(out_prefix, "", "output directory of results");
 DEFINE_string(jobid, "", "jobid, only used in LDBC graphanalytics.");
 DEFINE_bool(directed, false, "input graph is directed or not.");
+DEFINE_bool(secret, false, "input graph has secret data or not.");
 
 DEFINE_int64(vertex_num, -1, "vertex number");
 DEFINE_int64(edge_num, -1, "edge number");
@@ -38,6 +39,7 @@ DEFINE_double(pr_d, 0.85, "damping_factor of pagerank");
 DEFINE_int32(pr_mr, 10, "max rounds of pagerank");
 DEFINE_int32(degree_threshold, std::numeric_limits<int>::max(),
              "Filtering threshold for some algorithms");
+DEFINE_int64(drug_patient, 0, "vertex id of patient to recommend drug");
 
 DEFINE_bool(opt, false, "whether to use optimization.");
 
