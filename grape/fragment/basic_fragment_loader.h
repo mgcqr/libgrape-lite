@@ -26,6 +26,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 #include "grape/communication/shuffle.h"
 #include "grape/config.h"

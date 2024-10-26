@@ -58,6 +58,7 @@ limitations under the License.
 #include "wcc/wcc.h"
 #include "wcc/wcc_auto.h"
 #include "drug_recommendation/drug_recommendation.h"
+#include "cdlp/cdlp_selective.h"
 
 #ifndef __AFFINITY__
 #define __AFFINITY__ false
@@ -286,6 +287,10 @@ void Run() {
     } else if (name == "drug_recommendation") {//DrugRecommendation
       CreateAndQuery<OID_T, VID_T, std::string, int, LoadStrategy::kOnlyOut,//VDATA_T无法通过run_app.cc传进来，必须这里手写，grape的bug，sssp的EDATA_T也是这样
                      DrugRecommendation>(comm_spec, out_prefix, fnum, spec, FLAGS_drug_patient);
+    } else if (name == "cdlp_selective"){
+      CreateAndQuery<OID_T, VID_T, int, EmptyType, LoadStrategy::kOnlyOut,//VDATA_T无法通过run_app.cc传进来，必须这里手写，grape的bug，sssp的EDATA_T也是这样
+                     CDLPSelective, int>(comm_spec, out_prefix, fnum, spec,
+                                FLAGS_cdlp_mr);
     } else {
       LOG(FATAL) << "No avaiable application named [" << name << "].";
     }
