@@ -35,6 +35,7 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
  private:
   using label_t = typename context_t::label_t;
   using vid_t = typename context_t::vid_t;
+  using vertex_t = typename fragment_t::vertex_t;
   std::vector<std::string> vertex_class_step;
   /**
    * wuyufei
@@ -58,7 +59,13 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
 
   }
 
-
+  void decode(const fragment_t& frag, context_t& ctx, vertex_t& v) {
+    auto id = frag.GetId(v);
+    id  = id - 1;
+    if (id < 0)
+      id = id + 2;
+    frag.GetVertex(id, v);
+  }
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
                       message_manager_t& messages) {
     ctx.ostream << "PropagateLabel" << std::endl;
@@ -95,6 +102,10 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
               ctx.ostream << "AdjList got" << std::endl;
               for(auto e : es) {
                 vertex_t u = e.get_neighbor();
+                if (e.secret) {
+                  ctx.ostream << "secret edge" << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;
+                  decode(frag, ctx, u);
+                }
                 ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
                 if(ctx.step < 3) {
                   if (frag.IsInnerVertex(u)) {
@@ -132,7 +143,6 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
   static constexpr MessageStrategy message_strategy =
       MessageStrategy::kAlongOutgoingEdgeToOuterVertex;
   static constexpr LoadStrategy load_strategy = LoadStrategy::kOnlyOut;
-  using vertex_t = typename fragment_t::vertex_t;
 
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
