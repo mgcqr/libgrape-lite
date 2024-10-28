@@ -49,10 +49,11 @@ public:
   void Init(ParallelMessageManager& messages, int patientId ) {
     auto& frag = this->fragment();
     auto inner_vertices = frag.InnerVertices();
-    Vertex<vid_t> patientVertex;
-    frag.GetVertex(patientId, patientVertex);
     active.Init(inner_vertices);
-    active[patientVertex] = true;
+
+    Vertex<vid_t> patientVertex;
+    if (frag.GetVertex(patientId, patientVertex))
+      active[patientVertex] = true;
     step = 0;
 
 #ifdef PROFILING
