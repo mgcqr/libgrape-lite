@@ -35,6 +35,7 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
  private:
   using label_t = typename context_t::label_t;
   using vid_t = typename context_t::vid_t;
+  using vertex_t = typename fragment_t::vertex_t;
   std::vector<std::string> vertex_class_step;
   /**
    * wuyufei
@@ -49,16 +50,24 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
     auto inner_vertices = frag.InnerVertices();
     ctx.ostream << "current label\n";
     for(auto v : inner_vertices ){
+      if (ctx.labels[v] != 0)
       ctx.ostream << "v" << frag.GetId(v) << " : " << ctx.labels[v] << std::endl;
     }
     ctx.ostream << "active \n";
     for(auto v : inner_vertices ){
+      if (ctx.active[v] != 0)
       ctx.ostream << "v" << frag.GetId(v) << " : " << ctx.active[v] << std::endl;
     }
 
   }
 
-
+  void decode(const fragment_t& frag, context_t& ctx, vertex_t& v) {
+    auto id = frag.GetId(v);
+    id  = id - 128;
+    if (id < 0)
+      id = id + 334;
+    frag.GetVertex(id, v);
+  }
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
                       message_manager_t& messages) {
     ctx.ostream << "PropagateLabel" << std::endl;
@@ -76,17 +85,17 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
     // touch neighbor and send messages in parallel
     ForEach(inner_vertices,
             [&frag, &ctx, &messages, this](int tid, vertex_t v) {
-              ctx.ostream << "=== printState ===\n";
-              ctx.ostream << "current vertex:" << frag.GetId(v) << std::endl;
               if(frag.GetData(v) != vertex_class_step[ctx.step - 1]) {
-                ctx.ostream << frag.GetData(v) << "!=" << vertex_class_step[ctx.step - 1] << std::endl;
+                // ctx.ostream << frag.GetData(v) << "!=" << vertex_class_step[ctx.step - 1] << std::endl;
                 return;
               }
 
               if (ctx.active[v] == false) {
-                ctx.ostream << "non active \n";
+                // ctx.ostream << "non active \n";
                 return;
               }
+              ctx.ostream << "=== printState ===\n";
+              ctx.ostream << "current vertex:" << frag.GetId(v) << std::endl;
 
               printLabel(frag, ctx, messages);
 
@@ -95,11 +104,15 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
               ctx.ostream << "AdjList got" << std::endl;
               for(auto e : es) {
                 vertex_t u = e.get_neighbor();
+                if (e.secret) {
+                  ctx.ostream << "secret edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;
+                  decode(frag, ctx, u);
+                }
                 ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
                 if(ctx.step < 3) {
                   if (frag.IsInnerVertex(u)) {
                     ctx.active[u] = true;
-                    ctx.labels[u] = 1;
+                    // ctx.labels[u] = 1;
                   } else {
                     channel_0.SyncStateOnOuterVertex<fragment_t, label_t>(frag, u, 1);
                   }
@@ -132,7 +145,6 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
   static constexpr MessageStrategy message_strategy =
       MessageStrategy::kAlongOutgoingEdgeToOuterVertex;
   static constexpr LoadStrategy load_strategy = LoadStrategy::kOnlyOut;
-  using vertex_t = typename fragment_t::vertex_t;
 
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
