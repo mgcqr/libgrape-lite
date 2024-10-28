@@ -61,9 +61,8 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
 
   void decode(const fragment_t& frag, context_t& ctx, vertex_t& v) {
     auto id = frag.GetId(v);
-    id  = id - 1;
-    if (id < 0)
-      id = id + 2;
+    auto *conn = new TEE_connection;
+    id  = conn->decode(id, 1, 3);
     frag.GetVertex(id, v);
   }
   void PropagateLabel(const fragment_t& frag, context_t& ctx,

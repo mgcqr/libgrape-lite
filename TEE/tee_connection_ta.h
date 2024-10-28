@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, Linaro Limited
+* Copyright (c) 2016-2017, Linaro Limited
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,5 +39,6 @@
 /* The function IDs implemented in this TA */
 #define TA_TEE_CONNECTION_CMD_INC_VALUE		0
 #define TA_TEE_CONNECTION_DEC_VALUE		1
+#define TA_TEE_CONNECTION_DECODE_ID 	2
 
 #endif /*TA_TEE_CONNECTION_H*/
