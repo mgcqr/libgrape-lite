@@ -50,10 +50,12 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
     auto inner_vertices = frag.InnerVertices();
     ctx.ostream << "current label\n";
     for(auto v : inner_vertices ){
+      if (ctx.labels[v] != 0)
       ctx.ostream << "v" << frag.GetId(v) << " : " << ctx.labels[v] << std::endl;
     }
     ctx.ostream << "active \n";
     for(auto v : inner_vertices ){
+      if (ctx.active[v] != 0)
       ctx.ostream << "v" << frag.GetId(v) << " : " << ctx.active[v] << std::endl;
     }
 
@@ -62,7 +64,7 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
   void decode(const fragment_t& frag, context_t& ctx, vertex_t& v) {
     auto id = frag.GetId(v);
     auto *conn = new TEE_connection;
-    id  = conn->decode(id, 1, 3);
+    id  = conn->decode(id, 128, 334);
     frag.GetVertex(id, v);
   }
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
@@ -82,17 +84,17 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
     // touch neighbor and send messages in parallel
     ForEach(inner_vertices,
             [&frag, &ctx, &messages, this](int tid, vertex_t v) {
-              ctx.ostream << "=== printState ===\n";
-              ctx.ostream << "current vertex:" << frag.GetId(v) << std::endl;
               if(frag.GetData(v) != vertex_class_step[ctx.step - 1]) {
-                ctx.ostream << frag.GetData(v) << "!=" << vertex_class_step[ctx.step - 1] << std::endl;
+                // ctx.ostream << frag.GetData(v) << "!=" << vertex_class_step[ctx.step - 1] << std::endl;
                 return;
               }
 
               if (ctx.active[v] == false) {
-                ctx.ostream << "non active \n";
+                // ctx.ostream << "non active \n";
                 return;
               }
+              ctx.ostream << "=== printState ===\n";
+              ctx.ostream << "current vertex:" << frag.GetId(v) << std::endl;
 
               printLabel(frag, ctx, messages);
 
@@ -102,14 +104,14 @@ class DrugRecommendation : public ParallelAppBase<FRAG_T, DrugRecommendationCont
               for(auto e : es) {
                 vertex_t u = e.get_neighbor();
                 if (e.secret) {
-                  ctx.ostream << "secret edge" << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;
+                  ctx.ostream << "secret edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;
                   decode(frag, ctx, u);
                 }
                 ctx.ostream << "edge: " << frag.GetId(v)<< " -> " <<  frag.GetId(u) << std::endl;//
                 if(ctx.step < 3) {
                   if (frag.IsInnerVertex(u)) {
                     ctx.active[u] = true;
-                    ctx.labels[u] = 1;
+                    // ctx.labels[u] = 1;
                   } else {
                     channel_0.SyncStateOnOuterVertex<fragment_t, label_t>(frag, u, 1);
                   }

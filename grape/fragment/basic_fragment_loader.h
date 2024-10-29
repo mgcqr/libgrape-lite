@@ -519,7 +519,6 @@ class BasicTrustedFragmentLoader {
   }
 
   void ConstructFragment(std::shared_ptr<fragment_t>& fragment, bool directed, bool secret_) {
-    show_pfm_index();
 		for (auto& va : vertices_to_frag_) {
       va.Flush();
     }
@@ -531,6 +530,9 @@ class BasicTrustedFragmentLoader {
     recv_thread_running_ = false;
 
     MPI_Barrier(comm_spec_.comm());
+
+    if (comm_spec_.worker_id() == 0) 
+      show_pfm_index();
 
     got_vertices_.emplace_back(
         std::move(vertices_to_frag_[comm_spec_.fid()].buffers()));
@@ -665,7 +667,7 @@ class BasicTrustedFragmentLoader {
 		int32_t vnum_ = 0;
 		int64_t v2num_ = 0;
 		double avg = 0;
-		double locality = 1.0 - 1.0 * cut_edge_num / edge_num;
+		double locality = edge_num > 0 ? 1.0 - 1.0 * cut_edge_num / edge_num : 0;
 		double load_balance = 0;
 		for (int i = 0; i < fnum_; ++i) {
 			vnum_ += frag_sz[i];
