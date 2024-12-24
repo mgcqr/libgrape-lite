@@ -95,11 +95,13 @@ class EVFragmentLoader {
 
     std::vector<oid_t> id_list;
     std::vector<vdata_t> vdata_list;
+    std::vector<int32_t> vprivacy_list;
     if (!vfile.empty()) {
       auto io_adaptor = std::unique_ptr<IOADAPTOR_T>(new IOADAPTOR_T(vfile));
       io_adaptor->Open();
       std::string line;
       vdata_t v_data;
+      int32_t v_privacy;
       oid_t vertex_id;
       size_t line_no = 0;
       while (io_adaptor->ReadLine(line)) {
@@ -111,13 +113,14 @@ class EVFragmentLoader {
         if (line.empty() || line[0] == '#')
           continue;
         try {
-          line_parser_.LineParserForVFile(line, vertex_id, v_data);
+          line_parser_.LineParserForVFile(line, vertex_id, v_data, v_privacy);
         } catch (std::exception& e) {
           VLOG(1) << e.what();
           continue;
         }
         id_list.push_back(vertex_id);
         vdata_list.push_back(v_data);
+        vprivacy_list.push_back(v_privacy);
       }
       io_adaptor->Close();
     }
@@ -131,7 +134,7 @@ class EVFragmentLoader {
     {
       size_t vnum = id_list.size();
       for (size_t i = 0; i < vnum; ++i) {
-        basic_fragment_loader_.AddVertex(id_list[i], vdata_list[i]);
+        basic_fragment_loader_.AddVertex(id_list[i], vdata_list[i], vprivacy_list[i]);
       }
     }
 
@@ -143,6 +146,7 @@ class EVFragmentLoader {
       io_adaptor->Open();
       std::string line;
       edata_t e_data;
+      int32_t e_privacy;
       oid_t src, dst;
 
       size_t lineNo = 0;
@@ -162,7 +166,7 @@ class EVFragmentLoader {
           continue;
         }
 
-        basic_fragment_loader_.AddEdge(src, dst, e_data);
+        basic_fragment_loader_.AddEdge(src, dst, e_data, e_privacy);
       }
       io_adaptor->Close();
     }

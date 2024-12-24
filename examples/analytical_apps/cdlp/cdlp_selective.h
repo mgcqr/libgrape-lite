@@ -146,6 +146,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
       auto *conn = new TEE_connection;
       if (conn->is_equal(frag.GetData(v), 1)){//标签过滤逻辑
         ctx.verticesWithValidLabel.Insert(v);
+        std::cout<<frag.GetSecret(v)<<std::endl;
       }
       ctx.labels[v] = frag.GetInnerVertexId(v);
       delete conn;

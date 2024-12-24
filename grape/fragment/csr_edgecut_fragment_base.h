@@ -537,60 +537,60 @@ class CSREdgecutFragmentBase
 
     auto insert_iter_in = [&](const Edge<VID_T, EDATA_T>& e) {
       if (e.src != invalid_vid) {
-        ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+        ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
         if (!IsInnerVertexLid(e.src)) {
-          oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+          oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
         }
       }
     };
     auto insert_iter_out = [&](const Edge<VID_T, EDATA_T>& e) {
       if (e.src != invalid_vid) {
-        oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+        oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
         if (!IsInnerVertexLid(e.dst)) {
-          ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+          ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
         }
       }
     };
     auto insert_iter_out_in = [&](const Edge<VID_T, EDATA_T>& e) {
       if (e.src != invalid_vid) {
-        ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
-        oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+        ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
+        oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
       }
     };
     auto insert_iter_in_undirected = [&](const Edge<VID_T, EDATA_T>& e) {
       if (e.src != invalid_vid) {
         if (IsInnerVertexLid(e.src)) {
-          ie_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+          ie_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
         } else {
-          oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+          oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
         }
         if (IsInnerVertexLid(e.dst)) {
-          ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+          ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
         } else {
-          oe_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+          oe_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
         }
       }
     };
     auto insert_iter_out_undirected = [&](const Edge<VID_T, EDATA_T>& e) {
       if (e.src != invalid_vid) {
         if (IsInnerVertexLid(e.src)) {
-          oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+          oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
         } else {
-          ie_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
+          ie_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
         }
         if (IsInnerVertexLid(e.dst)) {
-          oe_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+          oe_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
         } else {
-          ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+          ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
         }
       }
     };
     auto insert_iter_out_in_undirected = [&](const Edge<VID_T, EDATA_T>& e) {
       if (e.src != invalid_vid) {
-        ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
-        ie_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
-        oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata));
-        oe_builder.add_edge(e.dst, nbr_t(e.src, e.edata));
+        ie_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
+        ie_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
+        oe_builder.add_edge(e.src, nbr_t(e.dst, e.edata, e.secret));
+        oe_builder.add_edge(e.dst, nbr_t(e.src, e.edata, e.secret));
       }
     };
 

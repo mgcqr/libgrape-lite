@@ -319,15 +319,19 @@ class ImmutableEdgecutFragment
 
     vdata_.clear();
     vdata_.resize(ivnum_ + ovnum_);
+    vsecret_.clear();
+    vsecret_.resize(ivnum_ + ovnum_);
     if (sizeof(internal_vertex_t) > sizeof(VID_T)) {
       for (auto& v : vertices) {
         VID_T gid = v.vid;
         if (id_parser_.get_fragment_id(gid) == fid_) {
           vdata_[id_parser_.get_local_id(gid)] = v.vdata;
+          vsecret_[id_parser_.get_local_id(gid)] = v.secret;
         } else {
           auto iter = ovg2l_.find(gid);
           if (iter != ovg2l_.end()) {
             vdata_[iter->second] = v.vdata;
+            vsecret_[iter->second] = v.secret;
           }
         }
       }
@@ -430,6 +434,14 @@ class ImmutableEdgecutFragment
 
   inline void SetData(const vertex_t& v, const VDATA_T& val) override {
     vdata_[v.GetValue()] = val;
+  }
+
+  inline bool GetSecret(const vertex_t& v) const {
+    return vsecret_[v.GetValue()];
+  }
+
+  inline void SetSecret(const vertex_t& v, bool val) {
+    vsecret_[v.GetValue()] = val;
   }
 
   bool OuterVertexGid2Lid(VID_T gid, VID_T& lid) const override {
@@ -728,6 +740,7 @@ class ImmutableEdgecutFragment
       ovg2l_;
   Array<VID_T, Allocator<VID_T>> ovgid_;
   Array<VDATA_T, Allocator<VDATA_T>> vdata_;
+  Array<bool, Allocator<bool>> vsecret_;
 
   using base_t::outer_vertices_of_frag_;
 

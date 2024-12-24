@@ -147,22 +147,22 @@ class BasicFragmentLoader {
     }
   }
 
-  void AddVertex(const oid_t& id, const vdata_t& data) {
+  void AddVertex(const oid_t& id, const vdata_t& data, const int32_t& v_privacy) {
     internal_oid_t internal_id(id);
     auto& partitioner = vm_ptr_->GetPartitioner();
     fid_t fid = partitioner.GetPartitionId(internal_id);
-    vertices_to_frag_[fid].Emplace(internal_id, data);
+    vertices_to_frag_[fid].Emplace(internal_id, data, v_privacy);
   }
 
-  void AddEdge(const oid_t& src, const oid_t& dst, const edata_t& data) {
+  void AddEdge(const oid_t& src, const oid_t& dst, const edata_t& data, const int32_t& e_privacy) {
     internal_oid_t internal_src(src);
     internal_oid_t internal_dst(dst);
     auto& partitioner = vm_ptr_->GetPartitioner();
     fid_t src_fid = partitioner.GetPartitionId(internal_src);
     fid_t dst_fid = partitioner.GetPartitionId(internal_dst);
-    edges_to_frag_[src_fid].Emplace(internal_src, internal_dst, data);
+    edges_to_frag_[src_fid].Emplace(internal_src, internal_dst, data, e_privacy);
     if (src_fid != dst_fid) {
-      edges_to_frag_[dst_fid].Emplace(internal_src, internal_dst, data);
+      edges_to_frag_[dst_fid].Emplace(internal_src, internal_dst, data, e_privacy);
     }
   }
 
@@ -253,10 +253,10 @@ class BasicFragmentLoader {
     processed_vertices_.clear();
     if (!std::is_same<vdata_t, EmptyType>::value) {
       for (auto& buffers : got_vertices_) {
-        foreach_rval(buffers, [this](internal_oid_t&& id, vdata_t&& data) {
+        foreach_rval(buffers, [this](internal_oid_t&& id, vdata_t&& data, int32_t&& v_p) {
           vid_t gid;
           CHECK(vm_ptr_->_GetGid(id, gid));
-          processed_vertices_.emplace_back(gid, std::move(data));
+          processed_vertices_.emplace_back(gid, std::move(data), v_p);
         });
       }
     }
@@ -264,11 +264,11 @@ class BasicFragmentLoader {
 
     for (auto& buffers : got_edges_) {
       foreach_rval(buffers, [this](internal_oid_t&& src, internal_oid_t&& dst,
-                                   edata_t&& data) {
+                                   edata_t&& data, int32_t&& e_p) {
         vid_t src_gid, dst_gid;
         CHECK(vm_ptr_->_GetGid(src, src_gid));
         CHECK(vm_ptr_->_GetGid(dst, dst_gid));
-        processed_edges_.emplace_back(src_gid, dst_gid, std::move(data));
+        processed_edges_.emplace_back(src_gid, dst_gid, std::move(data), e_p);
       });
     }
 
@@ -282,7 +282,7 @@ class BasicFragmentLoader {
   }
 
   void vertexRecvRoutine() {
-    ShuffleIn<internal_oid_t, vdata_t> data_in;
+    ShuffleIn<internal_oid_t, vdata_t, int32_t> data_in;
     data_in.Init(comm_spec_.fnum(), comm_spec_.comm(), vertex_tag);
     fid_t dst_fid;
     int src_worker_id;
@@ -297,7 +297,7 @@ class BasicFragmentLoader {
   }
 
   void edgeRecvRoutine() {
-    ShuffleIn<internal_oid_t, internal_oid_t, edata_t> data_in;
+    ShuffleIn<internal_oid_t, internal_oid_t, edata_t, int32_t> data_in;
     data_in.Init(comm_spec_.fnum(), comm_spec_.comm(), edge_tag);
     fid_t dst_fid;
     int src_worker_id;
@@ -356,16 +356,16 @@ class BasicFragmentLoader {
   CommSpec comm_spec_;
   std::shared_ptr<vertex_map_t> vm_ptr_;
 
-  std::vector<ShuffleOut<internal_oid_t, vdata_t>> vertices_to_frag_;
-  std::vector<ShuffleOut<internal_oid_t, internal_oid_t, edata_t>>
+  std::vector<ShuffleOut<internal_oid_t, vdata_t, int32_t>> vertices_to_frag_;
+  std::vector<ShuffleOut<internal_oid_t, internal_oid_t, edata_t, int32_t>>
       edges_to_frag_;
 
   std::thread vertex_recv_thread_;
   std::thread edge_recv_thread_;
   bool recv_thread_running_;
 
-  std::vector<ShuffleBufferTuple<internal_oid_t, vdata_t>> got_vertices_;
-  std::vector<ShuffleBufferTuple<internal_oid_t, internal_oid_t, edata_t>>
+  std::vector<ShuffleBufferTuple<internal_oid_t, vdata_t, int32_t>> got_vertices_;
+  std::vector<ShuffleBufferTuple<internal_oid_t, internal_oid_t, edata_t, int32_t>>
       got_edges_;
 
   std::vector<internal::Vertex<vid_t, vdata_t>> processed_vertices_;

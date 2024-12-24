@@ -153,17 +153,19 @@ endif ()
 # ------------------------------------------------------------------------------
 # find_libraries
 # ------------------------------------------------------------------------------
-# 将库的安装路径添加到CMAKE的库搜索路径
-set(CMAKE_FIND_ROOT_PATH "${CMAKE_FIND_ROOT_PATH};/home/wuyufei/arm64-install")
-
-# # 不知道为什么手动set MPI_HOME就能找到mpi了
-set(MPI_HOME "/home/wuyufei/arm64-install")
 find_package(MPI REQUIRED)
 include_directories(SYSTEM ${MPI_CXX_INCLUDE_PATH})
 
 # 寻找optee_client
 # find optee_client ------------------------------------------------------------
-find_library(TEEC_LIB NAMES teec)
+# find_library(TEEC_LIB NAMES teec)
+# 设置 OP-TEE 客户端头文件路径
+set(TEEC_INCLUDE_DIR /data/link/export/usr/include)
+include_directories(${TEEC_INCLUDE_DIR})
+# 设置 OP-TEE 客户端库路径
+set(TEEC_LIBRARY /data/lib/libteec.so)
+link_libraries(${TEEC_LIBRARY})
+
 
 # find Threads------------------------------------------------------------------
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
@@ -246,7 +248,7 @@ else ()
                              examples/analytical_apps)
   set_target_properties(analytical_apps PROPERTIES OUTPUT_NAME run_app)
   target_link_libraries(analytical_apps grape-lite ${MPI_CXX_LIBRARIES}
-                        ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${CMAKE_DL_LIBS} ${TEEC_LIB})# 加上teec
+                        ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${CMAKE_DL_LIBS} ${TEEC_LIBRARY})# 加上teec
   install_without_export_libgrapelite_target(analytical_apps)
 
   file(GLOB TEST_FILES RELATIVE "${PROJECT_SOURCE_DIR}/tests" "${PROJECT_SOURCE_DIR}/tests/*.cc")
@@ -261,7 +263,7 @@ else ()
     endif()
     target_include_directories(${T_NAME} PRIVATE examples/analytical_apps)
     target_link_libraries(${T_NAME} PRIVATE grape-lite ${MPI_CXX_LIBRARIES}
-                          ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${CMAKE_DL_LIBS} ${TEEC_LIB})# 加上teec
+                          ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${CMAKE_DL_LIBS} ${TEEC_LIBRARY})# 加上teec
   endforeach()
 
   if (WITH_CUDA)
@@ -285,7 +287,7 @@ else ()
                              examples/gnn_sampler/thirdparty
                              ${RDKAFKA_INCLUDE_DIR})
   target_link_libraries(gnn_sampler grape-lite ${MPI_CXX_LIBRARIES}
-                        ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${CMAKE_DL_LIBS} ${RDKAFKA_LIBRARIES} ${TEEC_LIB})# 加上teec
+                        ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${CMAKE_DL_LIBS} ${RDKAFKA_LIBRARIES} ${TEEC_LIBRARY})# 加上teec
   install_without_export_libgrapelite_target(gnn_sampler)
 endif ()
 
