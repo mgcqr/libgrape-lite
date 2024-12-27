@@ -17,29 +17,37 @@
 
 
 class TEE_connection {
-    public:
-      bool is_equal(int first, int second){
-          TEEC_Result res;
-          TEEC_Context ctx;
-          TEEC_Session sess;
-          TEEC_Operation op;
-          TEEC_UUID uuid = TA_TEE_CONNECTION_UUID;
-          uint32_t err_origin;
+  public:
+    TEE_connection(int32_t id): id(id) {
 
-          /* Initialize a context connecting us to the TEE */
-          res = TEEC_InitializeContext(NULL, &ctx);
-          if (res != TEEC_SUCCESS)
-              errx(1, "TEEC_InitializeContext failed with code 0x%x", res);
+     /* Initialize a context connecting us to the TEE */
+     res = TEEC_InitializeContext(NULL, &ctx);
+     if (res != TEEC_SUCCESS)
+      errx(1, "TEEC_InitializeContext failed with code 0x%x", res);
 
-          /*
-           * Open a session to the "hello world" TA, the TA will print "hello
-           * world!" in the log when the session is created.
-           */
-          res = TEEC_OpenSession(&ctx, &sess, &uuid,
-                         TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
-          if (res != TEEC_SUCCESS)
-              errx(1, "TEEC_Opensession failed with code 0x%x origin 0x%x",
-                  res, err_origin);
+     /*
+      * Open a session to the "hello world" TA, the TA will print "hello
+      * world!" in the log when the session is created.
+      */
+     res = TEEC_OpenSession(&ctx, &sess, &uuid,
+                    TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
+     if (res != TEEC_SUCCESS)
+      errx(1, "TEEC_Opensession failed with code 0x%x origin 0x%x",
+          res, err_origin);
+    }
+    ~TEE_connection() {
+      /*
+       * We're done with the TA, close the session and
+       * destroy the context.
+       *
+       * The TA will print "Goodbye!" in the log when the
+       * session is closed.
+       */
+     TEEC_CloseSession(&sess);
+     TEEC_FinalizeContext(&ctx);
+    }
+    bool is_equal(int first, int second){
+
 
           /*
            * Execute a function in the TA by invoking it, in this case
@@ -73,21 +81,17 @@ class TEE_connection {
                   res, err_origin);
           printf("TA results: %d\n", op.params[2].value.a);
 
-          /*
-           * We're done with the TA, close the session and
-           * destroy the context.
-           *
-           * The TA will print "Goodbye!" in the log when the
-           * session is closed.
-           */
-
-          TEEC_CloseSession(&sess);
-
-          TEEC_FinalizeContext(&ctx);
-
           return op.params[2].value.a;
       }
+  private:
+    TEEC_Result res;
+    TEEC_Context ctx;
+    TEEC_Session sess;
+    TEEC_Operation op;
+    TEEC_UUID uuid = TA_TEE_CONNECTION_UUID;
+    uint32_t err_origin;
 
+    int32_t id;
 };
 
 

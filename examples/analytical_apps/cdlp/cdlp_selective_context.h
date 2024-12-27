@@ -20,6 +20,8 @@ limitations under the License.
 
 #include <grape/grape.h>
 
+#include "TEE/connection_pool.h"
+
 namespace grape {
 /**
  * @brief Context for the parallel version of CDLP.
@@ -48,7 +50,7 @@ class CDLPSelectiveContext : public VertexDataContext<FRAG_T, typename FRAG_T::o
 #else
       : VertexDataContext<FRAG_T, typename FRAG_T::oid_t>(fragment, true),
 #endif
-        labels(this->data()) {
+        labels(this->data()), connection_pool(2) {
   }
 
   void Init(ParallelMessageManager& messages, int max_round) {
@@ -74,11 +76,14 @@ class CDLPSelectiveContext : public VertexDataContext<FRAG_T, typename FRAG_T::o
     for (auto v : inner_vertices) {
       os << frag.GetId(v) << " " << labels[v] << std::endl;
     }
+    ostream.close();
   }
 
   DenseVertexSet<typename FRAG_T::vertices_t> verticesWithValidLabel;
   typename FRAG_T::template vertex_array_t<label_t>& labels;
   typename FRAG_T::template inner_vertex_array_t<bool> changed;
+  std::ofstream ostream;
+  ConnectionPool connection_pool;
 
 #ifdef PROFILING
   double preprocess_time = 0;

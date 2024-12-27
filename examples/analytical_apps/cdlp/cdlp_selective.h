@@ -9,7 +9,6 @@
 #include <grape/grape.h>
 #include <set>
 
-#include <iostream>  //wuyufei
 #include "cdlp/cdlp_selective_context.h"
 #include "cdlp/cdlp_utils.h"
 
@@ -47,16 +46,16 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
   void printLabel(const fragment_t& frag, context_t& ctx,
                       message_manager_t& messages){
     auto inner_vertices = frag.InnerVertices();
-    std::cout << "current label\n";
+    ctx.ostream << "current label\n";
     for(auto v : inner_vertices ){
-      std::cout << "v" << frag.GetId(v) << " : " << ctx.labels[v] << std::endl;
+      ctx.ostream << "v" << frag.GetId(v) << " : " << ctx.labels[v] << std::endl;
     }
-    std::cout << "valid label count :" << ctx.verticesWithValidLabel.Count() << std::endl;
+    ctx.ostream << "valid label count :" << ctx.verticesWithValidLabel.Count() << std::endl;
   }
 
   void PropagateLabel(const fragment_t& frag, context_t& ctx,
                       message_manager_t& messages) {
-    std::cout << "PropagateLabel" << std::endl;
+    ctx.ostream << "PropagateLabel" << std::endl;
 #ifdef PROFILING
     ctx.preprocess_time -= GetCurrentTime();
 #endif
@@ -73,7 +72,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
     // touch neighbor and send messages in parallel
     ForEach(inner_vertices,
             [&frag, &ctx, &new_ilabels, &messages](int tid, vertex_t v) {
-              auto *conn = new TEE_connection;
+              auto conn = ctx.connection_pool.acquire();
               auto es = frag.GetOutgoingAdjList(v);
               if (es.Empty()) {
                 ctx.changed[v] = false;
@@ -84,7 +83,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
                         es, ctx.labels, ctx.labels[v], ctx, frag, conn);//wuyufei
 
                 if (!conn->is_equal(ctx.labels[v] , new_label)) {
-                  std::cout << "Change v" << frag.GetId(v) << " " << ctx.labels[v] << " -> " << new_label << std::endl;
+                  ctx.ostream << "Change v" << frag.GetId(v) << " " << ctx.labels[v] << " -> " << new_label << std::endl;
                   new_ilabels[v] = new_label;
                   ctx.changed[v] = true;
                   messages.SendMsgThroughOEdges<fragment_t, label_t>(
@@ -93,7 +92,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
                   ctx.changed[v] = false;
                 }
               }
-              delete conn;
+              ctx.connection_pool.release(conn);
             });
 
 #ifdef PROFILING
@@ -120,7 +119,8 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
-    std::cout << "============ PEval ================\n";
+    ctx.ostream.open("log" + std::to_string(frag.fid()) + ".txt");
+    ctx.ostream << "============ PEval ================\n";
     auto inner_vertices = frag.InnerVertices();
     auto outer_vertices = frag.OuterVertices();
 
@@ -143,21 +143,21 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 #else
     ctx.verticesWithValidLabel.ParallelClear(GetThreadPool());
     ForEach(inner_vertices, [&frag, &ctx](int tid, vertex_t v) {
-      auto *conn = new TEE_connection;
+      auto conn = ctx.connection_pool.acquire();
       if (conn->is_equal(frag.GetData(v), 1)){//标签过滤逻辑
         ctx.verticesWithValidLabel.Insert(v);
         std::cout<<frag.GetSecret(v)<<std::endl;
       }
       ctx.labels[v] = frag.GetInnerVertexId(v);
-      delete conn;
+      ctx.connection_pool.release(conn);
     });
     ForEach(outer_vertices, [&frag, &ctx](int tid, vertex_t v) {
-      auto *conn = new TEE_connection;
+      auto conn = ctx.connection_pool.acquire();
       if (conn->is_equal(frag.GetData(v), 1)){
         ctx.verticesWithValidLabel.Insert(v);
       }
       ctx.labels[v] = frag.GetOuterVertexId(v);
-      delete conn;
+      ctx.connection_pool.release(conn);
     });
 #endif
     printLabel(frag, ctx, messages);//wuyufei
@@ -166,7 +166,7 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 
   void IncEval(const fragment_t& frag, context_t& ctx,
                message_manager_t& messages) {
-    std::cout << "=============== IncEval round "<< ctx.step << " ==================\n";
+    ctx.ostream << "=============== IncEval round "<< ctx.step << " ==================\n";
     ++ctx.step;
 
 #ifdef PROFILING

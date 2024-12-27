@@ -101,7 +101,7 @@ inline LABEL_T update_label_fast_selected(const ADJ_LIST_T& edges,
                                  const LABEL_T& original_label,
                                  const CONTEXT_T& ctx,
                                  const FRAG_T& frag,
-                                 TEE_connection* conn) {
+                                 std::shared_ptr<TEE_connection> conn) {
   static thread_local std::vector<LABEL_T> local_labels;
   local_labels.clear();
   LABEL_T srcLabel;;
