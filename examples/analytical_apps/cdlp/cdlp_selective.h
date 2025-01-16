@@ -143,10 +143,10 @@ class CDLPSelective : public ParallelAppBase<FRAG_T, CDLPSelectiveContext<FRAG_T
 #else
     ctx.verticesWithValidLabel.ParallelClear(GetThreadPool());
     ForEach(inner_vertices, [&frag, &ctx](int tid, vertex_t v) {
+      std::cout << "v" << frag.GetId(v) << ": " << frag.GetData(v) << " p" << frag.GetSecret(v) << std::endl;
       auto conn = ctx.connection_pool.acquire();
       if (conn->is_equal(frag.GetData(v), 1)){//标签过滤逻辑
         ctx.verticesWithValidLabel.Insert(v);
-        std::cout<<frag.GetSecret(v)<<std::endl;
       }
       ctx.labels[v] = frag.GetInnerVertexId(v);
       ctx.connection_pool.release(conn);

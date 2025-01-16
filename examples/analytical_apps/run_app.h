@@ -211,7 +211,7 @@ void Run() {
                      SSSPAuto, OID_T>(comm_spec, out_prefix, fnum, spec,
                                       FLAGS_sssp_source);
     } else if (name == "sssp") {
-      CreateAndQuery<OID_T, VID_T, VDATA_T, double, LoadStrategy::kOnlyOut,
+      CreateAndQuery<OID_T, VID_T, int, double, LoadStrategy::kOnlyOut,
                      SSSP, OID_T>(comm_spec, out_prefix, fnum, spec,
                                   FLAGS_sssp_source);
     } else {

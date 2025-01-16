@@ -37,7 +37,8 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
 
   explicit SSSPContext(const FRAG_T& fragment)
       : VertexDataContext<FRAG_T, double>(fragment, true),
-        partial_result(this->data()) {}
+        partial_result(this->data()),
+        connection_pool(2, sizeof(double) * 2){}
 
   void Init(ParallelMessageManager& messages, oid_t source_id) {
     auto& frag = this->fragment();
@@ -60,6 +61,7 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
     // According to specs, the output should be +inf
     auto& frag = this->fragment();
     auto inner_vertices = frag.InnerVertices();
+    std::cout << "private_count " << private_count << std::endl;
     for (auto v : inner_vertices) {
       double d = partial_result[v];
       if (d == std::numeric_limits<double>::max()) {
@@ -69,6 +71,7 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
            << d << std::endl;
       }
     }
+    ostream.close();
 #ifdef PROFILING
     VLOG(2) << "preprocess_time: " << preprocess_time << "s.";
     VLOG(2) << "exec_time: " << exec_time << "s.";
@@ -80,6 +83,11 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
   typename FRAG_T::template vertex_array_t<double>& partial_result;
 
   DenseVertexSet<typename FRAG_T::vertices_t> curr_modified, next_modified;
+
+  long int private_count = 0;
+  int private_count_iter = 0;
+  std::ofstream ostream;
+  ConnectionPool connection_pool;
 
 #ifdef PROFILING
   double preprocess_time = 0;

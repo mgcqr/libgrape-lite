@@ -22,9 +22,12 @@ public:
     using ConnectionPtr = std::shared_ptr<TEE_connection>;
 
     // 初始化连接池
-    ConnectionPool(size_t poolSize) : poolSize_(poolSize) {
+    ConnectionPool(size_t poolSize, size_t shm_size = 0) : poolSize_(poolSize) {
         for (size_t i = 0; i < poolSize_; ++i) {
-            pool_.emplace(std::make_shared<TEE_connection>(i));
+            auto conn = std::make_shared<TEE_connection>(i);
+            if (shm_size > 0)
+                conn->allocate_shared_menary(shm_size);
+            pool_.emplace(conn);
         }
     }
 

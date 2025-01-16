@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, Linaro Limited
+* Copyright (c) 2016-2017, Linaro Limited
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,13 @@
  * the ITU-T UUID generator at http://www.itu.int/ITU-T/asn1/uuid.html
  */
 #define TA_TEE_CONNECTION_UUID \
-	{ 0xa12cba01, 0x66c9, 0x4b57, \
-		{ 0x85, 0x0b, 0x85, 0x90, 0xf8, 0xb8, 0x04, 0x5f} }
+{ 0xa12cba01, 0x66c9, 0x4b57, \
+{ 0x85, 0x0b, 0x85, 0x90, 0xf8, 0xb8, 0x04, 0x5f} }
 
 /* The function IDs implemented in this TA */
-#define TA_TEE_CONNECTION_CMD_INC_VALUE		0
+#define TA_TEE_CONNECTION_COMPAIRE		0
 #define TA_TEE_CONNECTION_DEC_VALUE		1
+#define TA_TEE_CONNECTION_DECODE_ID 	2
+#define TA_TEE_CONNECTION_SHARED_MEM	3
 
 #endif /*TA_TEE_CONNECTION_H*/

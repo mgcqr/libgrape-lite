@@ -50,6 +50,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
    */
   void PEval(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
+    ctx.ostream.open("log" + std::to_string(frag.fid()) + ".txt");
     messages.InitChannels(thread_num());
 
     vertex_t source;
@@ -66,12 +67,23 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     auto& channel_0 = messages.Channels()[0];
 
     if (native_source) {
+      // ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " p" << frag.GetSecret(source) << std::endl;
+      if (frag.GetSecret(source)) {
+        ++ctx.private_count;
+        // ctx.ostream << "counting v" << frag.GetId(source) << std::endl;
+        // ctx.ostream << "iter_count: 1" << std::endl;
+        ctx.ostream << 1 << std::endl;
+      }else{
+        ctx.ostream << 0 << std::endl;
+      }
       ctx.partial_result[source] = 0;
       auto es = frag.GetOutgoingAdjList(source);
+      auto conn = ctx.connection_pool.acquire();
       for (auto& e : es) {
         vertex_t v = e.get_neighbor();
-        ctx.partial_result[v] =
-            std::min(ctx.partial_result[v], static_cast<double>(e.get_data()));
+        ctx.partial_result[v] = conn->min(ctx.partial_result[v], static_cast<double>(e.get_data()));
+        //    std::min(ctx.partial_result[v], static_cast<int>(e.get_data()));
+
         if (frag.IsOuterVertex(v)) {
           // put the message to the channel.
           channel_0.SyncStateOnOuterVertex<fragment_t, double>(
@@ -80,6 +92,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
           ctx.next_modified.Insert(v);
         }
       }
+      ctx.connection_pool.release(conn);
     }
 
 #ifdef PROFILING
@@ -104,6 +117,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
    */
   void IncEval(const fragment_t& frag, context_t& ctx,
                message_manager_t& messages) {
+    // ctx.ostream << "==== IncEval ====" << std::endl;
     auto inner_vertices = frag.InnerVertices();
 
     auto& channels = messages.Channels();
@@ -129,20 +143,37 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
 #endif
 
     // incremental evaluation.
+    ctx.private_count_iter = 0;
     ForEach(ctx.curr_modified, inner_vertices,
             [&frag, &ctx](int tid, vertex_t v) {
+              auto conn = ctx.connection_pool.acquire();
               double distv = ctx.partial_result[v];
+              // ctx.ostream << "v" << frag.GetId(v) << ": " << frag.GetData(v) << " p" << frag.GetSecret(v) << std::endl;
+              if (frag.GetSecret(v)) {
+                ++ctx.private_count;
+                ++ctx.private_count_iter;
+                // ctx.ostream << "counting v" << frag.GetId(v) << std::endl;
+              }
               auto es = frag.GetOutgoingAdjList(v);
               for (auto& e : es) {
                 vertex_t u = e.get_neighbor();
                 double ndistu = distv + e.get_data();
-                if (ndistu < ctx.partial_result[u]) {
-                  atomic_min(ctx.partial_result[u], ndistu);
-                  ctx.next_modified.Insert(u);
+                if (frag.GetSecret(u)){
+                  if (ndistu == conn->min(ndistu, ctx.partial_result[u])) {
+                    atomic_min(ctx.partial_result[u], ndistu);
+                    ctx.next_modified.Insert(u);
+                  }
+                } else {
+                  if (ndistu < ctx.partial_result[u]) {
+                    atomic_min(ctx.partial_result[u], ndistu);
+                    ctx.next_modified.Insert(u);
+                  }
                 }
               }
+              ctx.connection_pool.release(conn);
             });
-
+    // ctx.ostream << "iter_count: " << ctx.private_count_iter << std::endl;
+    ctx.ostream << ctx.private_count_iter << std::endl;
     // put messages into channels corresponding to the destination fragments.
 
 #ifdef PROFILING
