@@ -21,6 +21,7 @@ limitations under the License.
 #include <limits>
 
 #include <grape/grape.h>
+#include <grape/utils/thread_safe_mapper.h>
 
 namespace grape {
 
@@ -38,7 +39,7 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
   explicit SSSPContext(const FRAG_T& fragment)
       : VertexDataContext<FRAG_T, double>(fragment, true),
         partial_result(this->data()),
-        connection_pool(2, sizeof(double) * 2){}
+        connection_pool(1){}
 
   void Init(ParallelMessageManager& messages, oid_t source_id) {
     auto& frag = this->fragment();
@@ -83,6 +84,7 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
   typename FRAG_T::template vertex_array_t<double>& partial_result;
 
   DenseVertexSet<typename FRAG_T::vertices_t> curr_modified, next_modified;
+  ThreadSafeMapper<oid_t, double> private_potential_result;
 
   long int private_count = 0;
   int private_count_iter = 0;

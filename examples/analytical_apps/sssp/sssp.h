@@ -36,6 +36,7 @@ namespace grape {
 template <typename FRAG_T>
 class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
              public ParallelEngine {
+
  public:
   // specialize the templated worker.
   INSTALL_PARALLEL_WORKER(SSSP<FRAG_T>, SSSPContext<FRAG_T>, FRAG_T)
@@ -64,36 +65,47 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
 
     // Get the channel. Messages assigned to this channel will be sent by the
     // message manager in parallel with the evaluation process.
-    auto& channel_0 = messages.Channels()[0];
-
+    // auto& channel_0 = messages.Channels()[0];
     if (native_source) {
-      // ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " p" << frag.GetSecret(source) << std::endl;
+      ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " p" << frag.GetSecret(source) << std::endl;
+      //private_count
       if (frag.GetSecret(source)) {
         ++ctx.private_count;
-        // ctx.ostream << "counting v" << frag.GetId(source) << std::endl;
-        // ctx.ostream << "iter_count: 1" << std::endl;
         ctx.ostream << 1 << std::endl;
-      }else{
+      }else {
         ctx.ostream << 0 << std::endl;
       }
+
       ctx.partial_result[source] = 0;
       auto es = frag.GetOutgoingAdjList(source);
-      auto conn = ctx.connection_pool.acquire();
       for (auto& e : es) {
         vertex_t v = e.get_neighbor();
-        ctx.partial_result[v] = conn->min(ctx.partial_result[v], static_cast<double>(e.get_data()));
-        //    std::min(ctx.partial_result[v], static_cast<int>(e.get_data()));
-
-        if (frag.IsOuterVertex(v)) {
-          // put the message to the channel.
-          channel_0.SyncStateOnOuterVertex<fragment_t, double>(
-              frag, v, ctx.partial_result[v]);
-        } else {
+        ctx.ostream << "out v" << frag.GetId(v) << ": " << ctx.partial_result[v] << std::endl;
+        if(frag.GetSecret(v)) {
+          ctx.private_potential_result.insert_or_update_min(frag.GetId(v), static_cast<double>(e.get_data()));
+        }else {
+          ctx.partial_result[v] = std::min(ctx.partial_result[v], static_cast<double>(e.get_data()));
+          // if (frag.IsOuterVertex(v)) {
+          //   // put the message to the channel.
+          //   channel_0.SyncStateOnOuterVertex<fragment_t, double>(
+          //       frag, v, ctx.partial_result[v]);
+          // } else {
+          //   ctx.next_modified.Insert(v);
+          // }
           ctx.next_modified.Insert(v);
         }
+
       }
-      ctx.connection_pool.release(conn);
+      processPrivate(frag, ctx, messages);
     }
+    ctx.ostream << "sending msg" << std::endl;
+    auto outer_vertices = frag.OuterVertices();
+    ForEach(ctx.next_modified, outer_vertices,
+            [&messages, &frag, &ctx](int tid, vertex_t v) {
+              ctx.ostream << "sending v" << frag.GetId(v) << ": " << ctx.partial_result[v] << std::endl;
+              messages.Channels()[tid].SyncStateOnOuterVertex<fragment_t, double>(
+                  frag, v, ctx.partial_result[v]);
+            });
 
 #ifdef PROFILING
     ctx.exec_time += GetCurrentTime();
@@ -117,7 +129,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
    */
   void IncEval(const fragment_t& frag, context_t& ctx,
                message_manager_t& messages) {
-    // ctx.ostream << "==== IncEval ====" << std::endl;
+    ctx.ostream << "==================== IncEval ====================" << std::endl;
     auto inner_vertices = frag.InnerVertices();
 
     auto& channels = messages.Channels();
@@ -136,6 +148,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
             ctx.curr_modified.Insert(u);
           }
         });
+    ctx.ostream << "msg receive" << std::endl;
 
 #ifdef PROFILING
     ctx.preprocess_time += GetCurrentTime();
@@ -146,9 +159,8 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     ctx.private_count_iter = 0;
     ForEach(ctx.curr_modified, inner_vertices,
             [&frag, &ctx](int tid, vertex_t v) {
-              auto conn = ctx.connection_pool.acquire();
               double distv = ctx.partial_result[v];
-              // ctx.ostream << "v" << frag.GetId(v) << ": " << frag.GetData(v) << " p" << frag.GetSecret(v) << std::endl;
+              ctx.ostream << "v" << frag.GetId(v) << ": " << ctx.partial_result[v]<< " p" << frag.GetSecret(v) << std::endl;
               if (frag.GetSecret(v)) {
                 ++ctx.private_count;
                 ++ctx.private_count_iter;
@@ -159,10 +171,11 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
                 vertex_t u = e.get_neighbor();
                 double ndistu = distv + e.get_data();
                 if (frag.GetSecret(u)){
-                  if (ndistu == conn->min(ndistu, ctx.partial_result[u])) {
-                    atomic_min(ctx.partial_result[u], ndistu);
-                    ctx.next_modified.Insert(u);
-                  }
+                  // if (ndistu == conn->min(ndistu, ctx.partial_result[u])) {
+                  //   atomic_min(ctx.partial_result[u], ndistu);
+                  //   ctx.next_modified.Insert(u);
+                  // }
+                  ctx.private_potential_result.insert_or_update_min(frag.GetId(u), ndistu);
                 } else {
                   if (ndistu < ctx.partial_result[u]) {
                     atomic_min(ctx.partial_result[u], ndistu);
@@ -170,8 +183,9 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
                   }
                 }
               }
-              ctx.connection_pool.release(conn);
             });
+    processPrivate(frag, ctx, messages);
+
     // ctx.ostream << "iter_count: " << ctx.private_count_iter << std::endl;
     ctx.ostream << ctx.private_count_iter << std::endl;
     // put messages into channels corresponding to the destination fragments.
@@ -197,6 +211,53 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
 #ifdef PROFILING
     ctx.postprocess_time += GetCurrentTime();
 #endif
+  }
+private:
+  void processPrivate(const fragment_t& frag, context_t& ctx,
+             message_manager_t& messages) {
+    ctx.ostream << "===processPrivate===" << std::endl;
+    auto conn = ctx.connection_pool.acquire();
+
+    //compare and get active
+    conn->resetSharedMemory();
+    ctx.ostream << "resetSharedMemory" << std::endl;
+    uint64_t index = 0;
+    uint64_t size = 0;
+    auto current = static_cast<double*>(conn->sssp_get_current_buffer(size));
+    auto target = static_cast<double*>(conn->sssp_get_target_buffer(size));
+    ctx.ostream << "getBuffer" << std::endl;
+    for (auto vid : ctx.private_potential_result.keys()) {
+      vertex_t v;
+      frag.GetVertex(vid, v);
+      ctx.ostream << "process current v" << vid << ": " << ctx.partial_result[v] << std::endl;
+      current[index] = ctx.partial_result[v];
+
+      ctx.ostream << "process target v" << vid << ": " << ctx.private_potential_result.get(vid).value() << std::endl;
+      target[index] = ctx.private_potential_result.get(vid).value();
+      index ++;
+
+    }
+    ctx.ostream << "write data" << std::endl;
+    conn->sssp_compare();
+    ctx.ostream << "compare" << std::endl;
+
+    //send message
+    index = 0;
+    for (auto vid : ctx.private_potential_result.keys()) {
+      vertex_t v;
+      frag.GetVertex(vid, v);
+      ctx.ostream << "editing v" << vid << ": " << ctx.partial_result[v] << std::endl;
+      if (target[index] > 0) {
+        ctx.ostream << "changed\n";
+        ctx.partial_result[v] = current[index];
+        ctx.next_modified.Insert(v);
+      }
+      index ++;
+    }
+    ctx.ostream << "modify partial_result" << std::endl;
+    ctx.private_potential_result.clear();
+    ctx.connection_pool.release(conn);
+    //next_modify active list
   }
 };
 
