@@ -19,6 +19,7 @@ limitations under the License.
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <chrono>
 
 #include <grape/grape.h>
 #include <grape/utils/thread_safe_mapper.h>

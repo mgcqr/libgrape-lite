@@ -54,6 +54,8 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     ctx.ostream.open("log" + std::to_string(frag.fid()) + ".txt");
     messages.InitChannels(thread_num());
 
+    auto start = std::chrono::steady_clock::now();
+
     vertex_t source;
     bool native_source = frag.GetInnerVertex(ctx.source_id, source);
 
@@ -67,42 +69,32 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     // message manager in parallel with the evaluation process.
     // auto& channel_0 = messages.Channels()[0];
     if (native_source) {
-      ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " p" << frag.GetSecret(source) << std::endl;
-      //private_count
-      if (frag.GetSecret(source)) {
-        ++ctx.private_count;
-        ctx.ostream << 1 << std::endl;
-      }else {
-        ctx.ostream << 0 << std::endl;
-      }
+      // ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " p" << frag.GetSecret(source) << std::endl;
+      // if (frag.GetSecret(source)) {
+      //   ++ctx.private_count;
+      //   ctx.ostream << 1 << std::endl;
+      // }else {
+      //   ctx.ostream << 0 << std::endl;
+      // }
 
       ctx.partial_result[source] = 0;
       auto es = frag.GetOutgoingAdjList(source);
       for (auto& e : es) {
         vertex_t v = e.get_neighbor();
-        ctx.ostream << "out v" << frag.GetId(v) << ": " << ctx.partial_result[v] << std::endl;
+        // ctx.ostream << "out v" << frag.GetId(v) << ": " << ctx.partial_result[v] << std::endl;
         if(frag.GetSecret(v)) {
           ctx.private_potential_result.insert_or_update_min(frag.GetId(v), static_cast<double>(e.get_data()));
         }else {
           ctx.partial_result[v] = std::min(ctx.partial_result[v], static_cast<double>(e.get_data()));
-          // if (frag.IsOuterVertex(v)) {
-          //   // put the message to the channel.
-          //   channel_0.SyncStateOnOuterVertex<fragment_t, double>(
-          //       frag, v, ctx.partial_result[v]);
-          // } else {
-          //   ctx.next_modified.Insert(v);
-          // }
           ctx.next_modified.Insert(v);
         }
 
       }
       processPrivate(frag, ctx, messages);
     }
-    ctx.ostream << "sending msg" << std::endl;
     auto outer_vertices = frag.OuterVertices();
     ForEach(ctx.next_modified, outer_vertices,
             [&messages, &frag, &ctx](int tid, vertex_t v) {
-              ctx.ostream << "sending v" << frag.GetId(v) << ": " << ctx.partial_result[v] << std::endl;
               messages.Channels()[tid].SyncStateOnOuterVertex<fragment_t, double>(
                   frag, v, ctx.partial_result[v]);
             });
@@ -115,6 +107,10 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     messages.ForceContinue();
 
     ctx.next_modified.Swap(ctx.curr_modified);
+
+    //timmer
+    auto end = std::chrono::steady_clock::now();
+    ctx.ostream << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
 #ifdef PROFILING
     ctx.postprocess_time += GetCurrentTime();
 #endif
@@ -129,7 +125,9 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
    */
   void IncEval(const fragment_t& frag, context_t& ctx,
                message_manager_t& messages) {
-    ctx.ostream << "==================== IncEval ====================" << std::endl;
+    // ctx.ostream << "==================== IncEval ====================" << std::endl;
+    auto start = std::chrono::steady_clock::now();
+
     auto inner_vertices = frag.InnerVertices();
 
     auto& channels = messages.Channels();
@@ -148,7 +146,6 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
             ctx.curr_modified.Insert(u);
           }
         });
-    ctx.ostream << "msg receive" << std::endl;
 
 #ifdef PROFILING
     ctx.preprocess_time += GetCurrentTime();
@@ -160,21 +157,15 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     ForEach(ctx.curr_modified, inner_vertices,
             [&frag, &ctx](int tid, vertex_t v) {
               double distv = ctx.partial_result[v];
-              ctx.ostream << "v" << frag.GetId(v) << ": " << ctx.partial_result[v]<< " p" << frag.GetSecret(v) << std::endl;
               if (frag.GetSecret(v)) {
                 ++ctx.private_count;
                 ++ctx.private_count_iter;
-                // ctx.ostream << "counting v" << frag.GetId(v) << std::endl;
               }
               auto es = frag.GetOutgoingAdjList(v);
               for (auto& e : es) {
                 vertex_t u = e.get_neighbor();
                 double ndistu = distv + e.get_data();
                 if (frag.GetSecret(u)){
-                  // if (ndistu == conn->min(ndistu, ctx.partial_result[u])) {
-                  //   atomic_min(ctx.partial_result[u], ndistu);
-                  //   ctx.next_modified.Insert(u);
-                  // }
                   ctx.private_potential_result.insert_or_update_min(frag.GetId(u), ndistu);
                 } else {
                   if (ndistu < ctx.partial_result[u]) {
@@ -186,8 +177,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
             });
     processPrivate(frag, ctx, messages);
 
-    // ctx.ostream << "iter_count: " << ctx.private_count_iter << std::endl;
-    ctx.ostream << ctx.private_count_iter << std::endl;
+    // ctx.ostream << ctx.private_count_iter << std::endl;
     // put messages into channels corresponding to the destination fragments.
 
 #ifdef PROFILING
@@ -200,6 +190,9 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
               channels[tid].SyncStateOnOuterVertex<fragment_t, double>(
                   frag, v, ctx.partial_result[v]);
             });
+    //timmer
+    auto end = std::chrono::steady_clock::now();
+    ctx.ostream << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
 
     if (!ctx.next_modified.PartialEmpty(
             frag.Vertices().begin_value(),
@@ -208,6 +201,8 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     }
 
     ctx.next_modified.Swap(ctx.curr_modified);
+
+
 #ifdef PROFILING
     ctx.postprocess_time += GetCurrentTime();
 #endif
@@ -215,50 +210,43 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
 private:
   void processPrivate(const fragment_t& frag, context_t& ctx,
              message_manager_t& messages) {
-    ctx.ostream << "===processPrivate===" << std::endl;
     auto conn = ctx.connection_pool.acquire();
 
     //compare and get active
     conn->resetSharedMemory();
-    ctx.ostream << "resetSharedMemory" << std::endl;
     uint64_t index = 0;
     uint64_t size = 0;
     auto current = static_cast<double*>(conn->sssp_get_current_buffer(size));
     auto target = static_cast<double*>(conn->sssp_get_target_buffer(size));
-    ctx.ostream << "getBuffer" << std::endl;
+
     for (auto vid : ctx.private_potential_result.keys()) {
       vertex_t v;
       frag.GetVertex(vid, v);
-      ctx.ostream << "process current v" << vid << ": " << ctx.partial_result[v] << std::endl;
-      current[index] = ctx.partial_result[v];
 
-      ctx.ostream << "process target v" << vid << ": " << ctx.private_potential_result.get(vid).value() << std::endl;
+      current[index] = ctx.partial_result[v];
       target[index] = ctx.private_potential_result.get(vid).value();
+
       index ++;
 
     }
-    ctx.ostream << "write data" << std::endl;
     conn->sssp_compare();
-    ctx.ostream << "compare" << std::endl;
 
     //send message
     index = 0;
     for (auto vid : ctx.private_potential_result.keys()) {
       vertex_t v;
       frag.GetVertex(vid, v);
-      ctx.ostream << "editing v" << vid << ": " << ctx.partial_result[v] << std::endl;
       if (target[index] > 0) {
-        ctx.ostream << "changed\n";
         ctx.partial_result[v] = current[index];
         ctx.next_modified.Insert(v);
       }
       index ++;
     }
-    ctx.ostream << "modify partial_result" << std::endl;
     ctx.private_potential_result.clear();
     ctx.connection_pool.release(conn);
     //next_modify active list
   }
+
 };
 
 }  // namespace grape
