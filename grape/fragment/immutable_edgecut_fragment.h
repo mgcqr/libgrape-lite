@@ -321,17 +321,21 @@ class ImmutableEdgecutFragment
     vdata_.resize(ivnum_ + ovnum_);
     vsecret_.clear();
     vsecret_.resize(ivnum_ + ovnum_);
+    vmin_iter_.clear();
+    vmin_iter_.resize(ivnum_ + ovnum_);
     if (sizeof(internal_vertex_t) > sizeof(VID_T)) {
       for (auto& v : vertices) {
         VID_T gid = v.vid;
         if (id_parser_.get_fragment_id(gid) == fid_) {
           vdata_[id_parser_.get_local_id(gid)] = v.vdata;
           vsecret_[id_parser_.get_local_id(gid)] = v.secret;
+          vmin_iter_[id_parser_.get_local_id(gid)] = v.min_iter;
         } else {
           auto iter = ovg2l_.find(gid);
           if (iter != ovg2l_.end()) {
             vdata_[iter->second] = v.vdata;
             vsecret_[iter->second] = v.secret;
+            vmin_iter_[iter->second] = v.min_iter;
           }
         }
       }
@@ -436,12 +440,20 @@ class ImmutableEdgecutFragment
     vdata_[v.GetValue()] = val;
   }
 
-  inline bool GetSecret(const vertex_t& v) const {
+  inline int32_t GetSecret(const vertex_t& v) const {
     return vsecret_[v.GetValue()];
   }
 
-  inline void SetSecret(const vertex_t& v, bool val) {
+  inline void SetSecret(const vertex_t& v, int32_t val) {
     vsecret_[v.GetValue()] = val;
+  }
+
+  inline int32_t GetMinIter(const vertex_t& v) const {
+    return vmin_iter_[v.GetValue()];
+  }
+
+  inline void SetMinIter(const vertex_t& v, int32_t val) {
+    vmin_iter_[v.GetValue()] = val;
   }
 
   bool OuterVertexGid2Lid(VID_T gid, VID_T& lid) const override {
@@ -740,7 +752,8 @@ class ImmutableEdgecutFragment
       ovg2l_;
   Array<VID_T, Allocator<VID_T>> ovgid_;
   Array<VDATA_T, Allocator<VDATA_T>> vdata_;
-  Array<bool, Allocator<bool>> vsecret_;
+  Array<int32_t, Allocator<int32_t>> vsecret_;
+  Array<int32_t, Allocator<int32_t>> vmin_iter_;
 
   using base_t::outer_vertices_of_frag_;
 

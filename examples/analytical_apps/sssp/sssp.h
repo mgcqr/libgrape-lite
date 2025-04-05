@@ -67,7 +67,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     // message manager in parallel with the evaluation process.
     // auto& channel_0 = messages.Channels()[0];
     if (native_source) {
-      ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " p" << frag.GetSecret(source) << std::endl;
+      ctx.ostream << "v" << frag.GetId(source) << ": " << frag.GetData(source) << " i" << frag.GetMinIter(source) << " p" << frag.GetSecret(source) << std::endl;
       //private_count
       if (frag.GetSecret(source)) {
         ++ctx.private_count;
@@ -160,7 +160,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     ForEach(ctx.curr_modified, inner_vertices,
             [&frag, &ctx](int tid, vertex_t v) {
               double distv = ctx.partial_result[v];
-              ctx.ostream << "v" << frag.GetId(v) << ": " << ctx.partial_result[v]<< " p" << frag.GetSecret(v) << std::endl;
+              ctx.ostream << "v" << frag.GetId(v) << ": " << ctx.partial_result[v] << " i" << frag.GetMinIter(v) << " p" << frag.GetSecret(v) << std::endl;
               if (frag.GetSecret(v)) {
                 ++ctx.private_count;
                 ++ctx.private_count_iter;

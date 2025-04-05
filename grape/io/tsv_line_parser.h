@@ -52,8 +52,8 @@ class TSVLineParser : public LineParserBase<OID_T, VDATA_T, EDATA_T> {
   }
 
   virtual void LineParserForVFile(const std::string& line, OID_T& u,
-                                  VDATA_T& u_data, int32_t& u_p) {
-    this->LineParserForEverything(line, u, u_data, u_p);
+                                  VDATA_T& u_data,int32_t& min_iter, int32_t& u_p) {
+    this->LineParserForEverything(line, u, u_data, min_iter, u_p);
   }
 
  private:

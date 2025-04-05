@@ -147,11 +147,11 @@ class BasicFragmentLoader {
     }
   }
 
-  void AddVertex(const oid_t& id, const vdata_t& data, const int32_t& v_privacy) {
+  void AddVertex(const oid_t& id, const vdata_t& data, const int32_t& min_iter, const int32_t& v_privacy) {
     internal_oid_t internal_id(id);
     auto& partitioner = vm_ptr_->GetPartitioner();
     fid_t fid = partitioner.GetPartitionId(internal_id);
-    vertices_to_frag_[fid].Emplace(internal_id, data, v_privacy);
+    vertices_to_frag_[fid].Emplace(internal_id, data,min_iter , v_privacy);
   }
 
   void AddEdge(const oid_t& src, const oid_t& dst, const edata_t& data, const int32_t& e_privacy) {
@@ -253,10 +253,10 @@ class BasicFragmentLoader {
     processed_vertices_.clear();
     if (!std::is_same<vdata_t, EmptyType>::value) {
       for (auto& buffers : got_vertices_) {
-        foreach_rval(buffers, [this](internal_oid_t&& id, vdata_t&& data, int32_t&& v_p) {
+        foreach_rval(buffers, [this](internal_oid_t&& id, vdata_t&& data,int32_t&& min_iter , int32_t&& v_p) {
           vid_t gid;
           CHECK(vm_ptr_->_GetGid(id, gid));
-          processed_vertices_.emplace_back(gid, std::move(data), v_p);
+          processed_vertices_.emplace_back(gid, std::move(data),min_iter , v_p);
         });
       }
     }
@@ -282,7 +282,7 @@ class BasicFragmentLoader {
   }
 
   void vertexRecvRoutine() {
-    ShuffleIn<internal_oid_t, vdata_t, int32_t> data_in;
+    ShuffleIn<internal_oid_t, vdata_t,int32_t , int32_t> data_in;
     data_in.Init(comm_spec_.fnum(), comm_spec_.comm(), vertex_tag);
     fid_t dst_fid;
     int src_worker_id;
@@ -356,7 +356,7 @@ class BasicFragmentLoader {
   CommSpec comm_spec_;
   std::shared_ptr<vertex_map_t> vm_ptr_;
 
-  std::vector<ShuffleOut<internal_oid_t, vdata_t, int32_t>> vertices_to_frag_;
+  std::vector<ShuffleOut<internal_oid_t, vdata_t, int32_t , int32_t>> vertices_to_frag_;
   std::vector<ShuffleOut<internal_oid_t, internal_oid_t, edata_t, int32_t>>
       edges_to_frag_;
 
@@ -364,7 +364,7 @@ class BasicFragmentLoader {
   std::thread edge_recv_thread_;
   bool recv_thread_running_;
 
-  std::vector<ShuffleBufferTuple<internal_oid_t, vdata_t, int32_t>> got_vertices_;
+  std::vector<ShuffleBufferTuple<internal_oid_t, vdata_t, int32_t, int32_t>> got_vertices_;
   std::vector<ShuffleBufferTuple<internal_oid_t, internal_oid_t, edata_t, int32_t>>
       got_edges_;
 
