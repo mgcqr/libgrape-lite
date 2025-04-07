@@ -81,6 +81,14 @@ public:
     std::lock_guard<std::mutex> lock(mutex_);
     data_.clear();
   }
+  void swap(ThreadSafeMapper<Key, Value>& other) {
+    if (this == &other) return;
+    // 同时锁定两个 mutex，避免死锁
+    std::lock(mutex_, other.mutex_);
+    std::lock_guard<std::mutex> lock1(mutex_, std::adopt_lock);
+    std::lock_guard<std::mutex> lock2(other.mutex_, std::adopt_lock);
+    data_.swap(other.data_);
+  }
 
   // 返回所有键的副本 遍历key线程不安全
   std::vector<Key> keys() const {

@@ -54,6 +54,7 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
     ctx.ostream.open("log" + std::to_string(frag.fid()) + ".txt");
     messages.InitChannels(thread_num());
 
+    ctx.ostream << "==================== Iter "<< ctx.iter << " ====================" << std::endl;
     vertex_t source;
     bool native_source = frag.GetInnerVertex(ctx.source_id, source);
 
@@ -129,7 +130,8 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
    */
   void IncEval(const fragment_t& frag, context_t& ctx,
                message_manager_t& messages) {
-    ctx.ostream << "==================== IncEval ====================" << std::endl;
+    ++ctx.iter;
+    ctx.ostream << "==================== Iter "<< ctx.iter << " ====================" << std::endl;
     auto inner_vertices = frag.InnerVertices();
 
     auto& channels = messages.Channels();
@@ -161,6 +163,9 @@ class SSSP : public ParallelAppBase<FRAG_T, SSSPContext<FRAG_T>>,
             [&frag, &ctx](int tid, vertex_t v) {
               double distv = ctx.partial_result[v];
               ctx.ostream << "v" << frag.GetId(v) << ": " << ctx.partial_result[v] << " i" << frag.GetMinIter(v) << " p" << frag.GetSecret(v) << std::endl;
+              if (ctx.iter < frag.GetMinIter(v))
+                return;
+
               if (frag.GetSecret(v)) {
                 ++ctx.private_count;
                 ++ctx.private_count_iter;
@@ -230,8 +235,14 @@ private:
       vertex_t v;
       frag.GetVertex(vid, v);
       ctx.ostream << "process current v" << vid << ": " << ctx.partial_result[v] << std::endl;
-      current[index] = ctx.partial_result[v];
+      //跳过未达最小轮次的顶点
+      if (ctx.iter + 1 < frag.GetMinIter(v)) {
+        ctx.ostream << "v " << vid << ": " <<  "continue" << std::endl;
+        ctx.waiting_private.insert_or_update(vid, ctx.private_potential_result.get(vid).value());
+        continue;
+      }
 
+      current[index] = ctx.partial_result[v];
       ctx.ostream << "process target v" << vid << ": " << ctx.private_potential_result.get(vid).value() << std::endl;
       target[index] = ctx.private_potential_result.get(vid).value();
       index ++;
@@ -246,6 +257,9 @@ private:
     for (auto vid : ctx.private_potential_result.keys()) {
       vertex_t v;
       frag.GetVertex(vid, v);
+      if (ctx.iter + 1 < frag.GetMinIter(v))
+        continue;
+
       ctx.ostream << "editing v" << vid << ": " << ctx.partial_result[v] << std::endl;
       if (target[index] > 0) {
         ctx.ostream << "changed\n";
@@ -255,7 +269,8 @@ private:
       index ++;
     }
     ctx.ostream << "modify partial_result" << std::endl;
-    ctx.private_potential_result.clear();
+    ctx.private_potential_result.swap(ctx.waiting_private);
+    ctx.waiting_private.clear();
     ctx.connection_pool.release(conn);
     //next_modify active list
   }

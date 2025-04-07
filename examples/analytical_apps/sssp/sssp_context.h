@@ -85,9 +85,11 @@ class SSSPContext : public VertexDataContext<FRAG_T, double> {
 
   DenseVertexSet<typename FRAG_T::vertices_t> curr_modified, next_modified;
   ThreadSafeMapper<oid_t, double> private_potential_result;
+  ThreadSafeMapper<oid_t, double> waiting_private;
 
   long int private_count = 0;
   int private_count_iter = 0;
+  int iter = 0;
   std::ofstream ostream;
   ConnectionPool connection_pool;
 
